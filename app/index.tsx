@@ -1,5 +1,9 @@
 import { StyleSheet, Pressable, Image, Text, View } from 'react-native'
 import React from 'react'
+import RowCounter from '../assets/img/row-counter.png';
+import Tutorials from '../assets/img/tutorials.png';
+import Projects from '../assets/img/projects.png';  
+
 
 const Home = () => {
   return (
@@ -10,19 +14,19 @@ const Home = () => {
         <View style={styles.buttonsContainer}>
             <View style={{ alignItems: "center" }}>
                 <View style={styles.buttons}>
-                    <Image style={{ width: 160, height: 160 }} source={require("../assets/row-counter.png")}></Image>
+                    <Image style={{ width: 160, height: 160 }} source={RowCounter}></Image>
                 </View>
                 <Text  style={{ marginTop: 8 }}>Row Counter</Text>
             </View>
             <View style={{ alignItems: "center" }}>
                 <View style={styles.buttons}>
-                    <Image style={{ width: 160, height: 160 }} source={require("../assets/tutorials.png")}></Image>
+                    <Image style={{ width: 160, height: 160 }} source={Tutorials}></Image>
                 </View>
                 <Text  style={{ marginTop: 8 }}>Tutorials</Text>
             </View>
             <View style={{ alignItems: "center" }}>
                 <View style={styles.buttons}>
-                    <Image style={{ width: 160, height: 160 }} source={require("../assets/projects.png")}></Image>
+                    <Image style={{ width: 160, height: 160 }} source={Projects}></Image>
                 </View>    
                 <Text  style={{ marginTop: 8 }}>Projects</Text>
             </View>
