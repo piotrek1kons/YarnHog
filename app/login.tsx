@@ -8,11 +8,6 @@ import Back from '../assets/img/back.png';
 const Login = () => {
   return (
     <View style={styles.container}>
-        <View style={[styles.head, { marginTop: 20, marginBottom: 20 }]}>
-            <Link href="/">
-                <Image source={Back} style={{ width: 30, height: 30 }}></Image>
-            </Link>
-        </View>
         <View style={{ marginTop: 20, marginBottom: 20 }}>
             <Image source={Logo} style={{ width: 300, height: 300 }}></Image>
         </View>
