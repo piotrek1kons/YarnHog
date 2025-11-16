@@ -1,4 +1,6 @@
-import { StyleSheet, Pressable, Image, Text, View } from 'react-native'
+import { StyleSheet, Pressable, Image, Text, View, StatusBar, Platform } from 'react-native'
+import { Link } from 'expo-router'
+
 import React from 'react'
 import RowCounter from '../assets/img/row-counter.png';
 import Tutorials from '../assets/img/tutorials.png';
@@ -8,7 +10,7 @@ import Projects from '../assets/img/projects.png';
 const Home = () => {
   return (
     <View style={styles.container}>
-        <View>
+        <View style={{ marginTop: 70, marginBottom: 20 }}>
             <Text style={styles.header}>YARNHOG</Text>
         </View>
         <View style={styles.buttonsContainer}>
@@ -43,9 +45,7 @@ const Home = () => {
                         opacity: pressed ? 0.6 : 1
                     }
                 ]}>
-                    <Text style={{ textAlign: "center", color: "#555", fontWeight: "bold" }}>
-                        SIGN IN!
-                    </Text>
+                    <Link href="/login" style={{ textAlign: "center", color: "#555", fontWeight: "bold" }}>SIGN IN!</Link>
             </Pressable>
             <Pressable disabled={true}
                 style={({ pressed }) => [
@@ -72,11 +72,11 @@ export default Home
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#FFFBF5'
-    },
+            flex: 1,
+            alignItems: 'center',
+            backgroundColor: '#FFFBF5', 
+            paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+        },
     header: {
         fontSize: 64,
         fontFamily: 'Merriweather',
