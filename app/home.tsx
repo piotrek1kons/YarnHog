@@ -27,7 +27,9 @@ const Home = () => {
             </View>
             <View style={{ alignItems: "center" }}>
                 <View style={styles.buttons}>
-                    <Image style={{ width: 160, height: 160 }} source={Tutorials}></Image>
+                    <Link href="/tutorials">
+                        <Image style={{ width: 160, height: 160 }} source={Tutorials}></Image>
+                    </Link>
                 </View>
                 <Text  style={{ marginTop: 8 }}>Tutorials</Text>
             </View>
@@ -45,7 +47,9 @@ const Home = () => {
             </View>
             <View style={{ alignItems: "center" }}>
                 <View style={styles.buttons}>
-                    <Image style={{ width: 160, height: 160 }} source={Profile}></Image>
+                    <Link href="/profile">
+                        <Image style={{ width: 160, height: 160 }} source={Profile}></Image>
+                    </Link>
                 </View>    
                 <Text  style={{ marginTop: 8 }}>Profile</Text>
             </View>
