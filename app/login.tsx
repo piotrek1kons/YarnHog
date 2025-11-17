@@ -8,7 +8,7 @@ import Back from '../assets/img/back.png';
 const Login = () => {
   return (
     <View style={styles.container}>
-        <View style={{ marginTop: 20, marginBottom: 20 }}>
+        <View>
             <Image source={Logo} style={{ width: 300, height: 300 }}></Image>
         </View>
         <View style={styles.form}>
@@ -40,16 +40,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         alignItems: 'center',
-        backgroundColor: '#FFFBF5', 
-        paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
-    },
-
-    head: { 
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 100,
-        width: '90%',
-        marginBottom: 20
+        backgroundColor: '#FFFBF5',
     },
 
     form:{

@@ -16,7 +16,9 @@ const Home = () => {
         <View style={styles.buttonsContainer}>
             <View style={{ alignItems: "center" }}>
                 <View style={styles.buttons}>
-                    <Image style={{ width: 160, height: 160 }} source={RowCounter}></Image>
+                    <Link href="/rowCounter">
+                        <Image style={{ width: 160, height: 160 }} source={RowCounter}></Image>
+                    </Link>
                 </View>
                 <Text  style={{ marginTop: 8 }}>Row Counter</Text>
             </View>
