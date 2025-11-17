@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View, Image, StatusBar, Platform } from 'react-native'
 import React from 'react'
 
-import NavArrow from '../assets/img/nav-arrow.png';
+import NavPanel from '../components/navPanel';
 
 const rowCounter = () => {
   return (
@@ -18,9 +18,7 @@ const rowCounter = () => {
         </View>
       </View>
     
-      <View style={styles.navBar}>
-        <Image source={NavArrow} style={{width: 24, height: 24}} />
-      </View>
+      <NavPanel />
     </View>
   )
 }
