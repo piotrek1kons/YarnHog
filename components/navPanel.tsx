@@ -80,7 +80,7 @@ const NavPanel = () => {
             {open && (
                 <View style={styles.openNavBar}>
                     <View style={styles.navButton}>
-                        <Pressable style={styles.navImage}><Link href="/"><Image source={Tutorials} /></Link></Pressable>
+                        <Pressable style={styles.navImage}><Link href="/home"><Image source={Tutorials} /></Link></Pressable>
                         <Text>Home</Text>
                     </View>
                     <View style={styles.navButton}>
