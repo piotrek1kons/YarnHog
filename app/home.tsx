@@ -1,5 +1,8 @@
-import { StyleSheet, Pressable, Image, Text, View, StatusBar, Platform } from 'react-native'
-import { Link } from 'expo-router'
+import { StyleSheet, Pressable, Image, Text, View, StatusBar, Platform, TouchableOpacity } from 'react-native'
+import { Link, router } from 'expo-router'
+import { auth } from '../FirebaseConfig'
+import { getAuth } from 'firebase/auth';
+
 
 import React from 'react'
 import RowCounter from '../assets/img/row-counter.png';
@@ -11,6 +14,11 @@ import Community from '../assets/img/community.png';
 
 
 const Home = () => {
+    getAuth().onAuthStateChanged((user) => {
+        if (!user) router.replace('/');
+    });
+
+
   return (
     <View style={styles.container}>
         <View style={{ marginTop: 10}}>
@@ -61,19 +69,9 @@ const Home = () => {
             </View>
         </View>
         <View>
-            <Pressable disabled={true}
-                style={({ pressed }) => [
-                    {
-                        width: 250,
-                        marginTop: 20,
-                        padding: 12,
-                        borderRadius: 8,
-                        backgroundColor: "#FFF8DB", // kolor disabled
-                        opacity: pressed ? 0.6 : 1
-                    }
-                ]}>
-                    <Link href="/" style={{ textAlign: "center", color: "#555", fontWeight: "bold" }}>LOGOUT</Link>
-            </Pressable>
+        <TouchableOpacity style={styles.logoutButton} onPress={() => auth.signOut()}>
+                    <Text>LOGOUT</Text>
+        </TouchableOpacity>
 
         </View>
     </View>
@@ -112,5 +110,13 @@ const styles = StyleSheet.create({
     button:{
         width: 200,
         marginTop: 20
+    },
+
+    logoutButton:{
+        width: 250,
+        marginTop: 20,
+        padding: 12,
+        borderRadius: 8,
+        backgroundColor: "#FFF8DB"
     }
 })
