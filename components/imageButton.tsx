@@ -18,7 +18,7 @@ const imageButton: React.FC<imageButton> = ({
   backgroundColor = "#FFF8DB",
 }) => {
   return (
-    <View style={{ alignItems: "center", margin: 8,  }}>
+    <View style={{ alignItems: "center"}}>
       <Link href={link} asChild style={{backgroundColor: backgroundColor, borderRadius: 20}}>
         <TouchableOpacity
           style={[styles.button, { width: size, height: size }]}
