@@ -56,9 +56,7 @@ const Home = () => {
                         opacity: pressed ? 0.6 : 1
                     }
                 ]}>
-                    <Text style={{ textAlign: "center", color: "#555", fontWeight: "bold" }}>
-                        SIGN UP!
-                    </Text>
+                    <Link href="/register" style={{ textAlign: "center", color: "#555", fontWeight: "bold" }}>SIGN UP!</Link>
             </Pressable>
 
         </View>

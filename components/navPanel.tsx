@@ -5,13 +5,15 @@ import Tutorials from '../assets/img/tutorials.png';
 import Projects from '../assets/img/projects.png';
 import Profile from '../assets/img/profile.png';
 import Community from '../assets/img/community.png';
-import Materials from '../assets/img/materials.png';  
+import Materials from '../assets/img/materials.png';
+import Home from '../assets/img/home.png';
+import RowCounter from '../assets/img/row-counter.png';
 import { Link } from "expo-router";
 
 const NavPanel = () => {
     const [open, setOpen] = useState(false);
 
-    const heightAnim = useRef(new Animated.Value(60)).current; 
+    const heightAnim = useRef(new Animated.Value(80)).current; 
 
     const styles = StyleSheet.create({
         mainNavBar:{
@@ -23,7 +25,7 @@ const NavPanel = () => {
             borderTopLeftRadius: 20,
             borderTopRightRadius: 20,
             height: heightAnim,
-            marginBottom: Platform.OS === "android" ? 40 : 0, 
+            marginBottom: Platform.OS === "android" ? 0 : 0, 
             alignItems: "center",
         },
 
@@ -32,7 +34,7 @@ const NavPanel = () => {
             flexWrap: "wrap",
             justifyContent: "center",
             gap: 20,
-            marginTop: 30
+            marginTop: 40
         },
 
         navButton:{
@@ -63,7 +65,7 @@ const NavPanel = () => {
 
     const toggleSheet = () => {
         Animated.timing(heightAnim, {
-        toValue: open ? 60 : 350, 
+        toValue: open ? 80 : 550, 
         duration: 250,
         easing: Easing.out(Easing.ease),
         useNativeDriver: false,
@@ -80,11 +82,11 @@ const NavPanel = () => {
             {open && (
                 <View style={styles.openNavBar}>
                     <View style={styles.navButton}>
-                        <Pressable style={styles.navImage}><Link href="/"><Image source={Tutorials} /></Link></Pressable>
-                        <Text>Home</Text>
+                        <Pressable style={styles.navImage}><Link href="/rowCounter"><Image source={RowCounter} /></Link></Pressable>
+                        <Text>Row Counter</Text>
                     </View>
                     <View style={styles.navButton}>
-                        <Pressable style={styles.navImage}><Link href="/"><Image source={Tutorials} /></Link></Pressable>
+                        <Pressable style={styles.navImage}><Link href="/tutorials"><Image source={Tutorials} /></Link></Pressable>
                         <Text >Tutorials</Text>
                     </View>
                     <View style={styles.navButton}>
@@ -92,7 +94,7 @@ const NavPanel = () => {
                         <Text >Projects</Text>
                     </View>
                     <View style={styles.navButton}>
-                        <Pressable style={styles.navImage}><Link href="/"><Image source={Profile} /></Link></Pressable>
+                        <Pressable style={styles.navImage}><Link href="/profile"><Image source={Profile} /></Link></Pressable>
                         <Text >Profile</Text>
                     </View>
                     <View style={styles.navButton}>
@@ -102,6 +104,10 @@ const NavPanel = () => {
                     <View style={styles.navButton}>
                         <Pressable style={styles.navImage}><Link href="/"><Image source={Materials} /></Link></Pressable>
                         <Text >My Materials</Text>
+                    </View>
+                    <View style={styles.navButton}>
+                        <Pressable style={styles.navImage}><Link href="/home"><Image style={{borderRadius: 500}} source={Home} /></Link></Pressable>
+                        <Text>Home</Text>
                     </View>
                     
                 </View>
