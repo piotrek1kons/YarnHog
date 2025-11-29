@@ -6,6 +6,7 @@ import RowCounter from '../assets/img/row-counter.png';
 import Tutorials from '../assets/img/tutorials.png';
 import Projects from '../assets/img/projects.png';  
 
+import ImageButton from '../components/imageButton';
 
 const Home = () => {
   return (
@@ -14,28 +15,21 @@ const Home = () => {
             <Text style={styles.header}>YARNHOG</Text>
         </View>
         <View style={styles.buttonsContainer}>
-            <View style={{ alignItems: "center" }}>
-                <View style={styles.buttons}>
-                    <Link href="/rowCounter">
-                        <Image style={{ width: 160, height: 160 }} source={RowCounter}></Image>
-                    </Link>
-                </View>
-                <Text  style={{ marginTop: 8 }}>Row Counter</Text>
-            </View>
-            <View style={{ alignItems: "center" }}>
-                <View style={styles.buttons}>
-                    <Link href="/tutorials">
-                        <Image style={{ width: 160, height: 160 }} source={Tutorials}></Image>
-                    </Link>
-                </View>
-                <Text  style={{ marginTop: 8 }}>Tutorials</Text>
-            </View>
-            <View style={{ alignItems: "center" }}>
-                <View style={styles.buttons}>
-                    <Image style={{ width: 160, height: 160 }} source={Projects}></Image>
-                </View>    
-                <Text  style={{ marginTop: 8 }}>Projects</Text>
-            </View>
+            <ImageButton
+                imageSource={RowCounter}
+                label="Row Counter"
+                link="/rowCounter"
+            />
+            <ImageButton
+                imageSource={Tutorials}
+                label="Tutorials"
+                link="/tutorials"
+            />
+            <ImageButton
+                imageSource={Projects}
+                label="Projects"
+                link="/projects"
+            />
         </View>
         <View>
             <Pressable disabled={true}
