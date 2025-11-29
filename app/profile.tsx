@@ -1,7 +1,9 @@
 import { StyleSheet, Pressable, Image, Text, View, StatusBar, Platform } from 'react-native'
 import { Link } from 'expo-router'
 
-import React from 'react'
+import React, {useState, useEffect, use} from 'react'
+import { auth, db } from '../FirebaseConfig';
+import { doc, getDoc } from 'firebase/firestore';
 import RowCounter from '../assets/img/row-counter.png';
 import Tutorials from '../assets/img/tutorials.png';
 import Projects from '../assets/img/projects.png'; 
@@ -12,12 +14,27 @@ import NavPanel from '../components/navPanel';
 
 
 const Home = () => {
+    const [username, setUsername] = useState('');
+
+    useEffect(() => {
+        const loadUserData = async () => {
+            const user = auth.currentUser;
+            if (!user) return;
+            const ref = doc(db, 'users', user.uid);
+            const snap = await getDoc(ref);
+            if (snap.exists()) {
+                setUsername(snap.data().username);
+            }
+        };
+        loadUserData();
+        }, []);
+    
+
   return (
     <View style={styles.container}>
-        
         <View style={styles.profil}>
             <Image style={styles.profil} source={Profile}></Image>
-            <Text style={{fontSize: 24, fontWeight: 'bold'}}>Username</Text>
+            <Text style={{fontSize: 24, fontWeight: 'bold'}}>{username}</Text>
         </View>
         <View style={{marginTop: 50}}>
             <Text style={{margin: 10, fontSize: 18, fontWeight: 'bold'}}>Email:</Text>
