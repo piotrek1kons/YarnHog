@@ -1,11 +1,24 @@
-import { StyleSheet, Text, View, Image, Pressable, TextInput, StatusBar, Platform } from 'react-native'
-import { Link } from 'expo-router'
-import React from 'react'
+import { StyleSheet, Text, View, Image, Pressable, TextInput, StatusBar, Platform, Touchable, TouchableOpacity } from 'react-native'
+import { Link, router } from 'expo-router'
+import { auth } from '../FirebaseConfig'
+import { signInWithEmailAndPassword } from 'firebase/auth'
+import React, { useState } from 'react'
 
 import Logo from '../assets/img/logo.png';
 import Back from '../assets/img/back.png';
 
 const Login = () => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const signIn = async () => {
+        try{
+            const user = await signInWithEmailAndPassword(auth, email, password);
+            if (user) router.replace('/home');
+        }catch (error: any) {
+            console.log(error);
+            alert('Sign in failed: ' + error.message);
+        }
+    }
   return (
     <View style={styles.container}>
         <View>
@@ -13,22 +26,12 @@ const Login = () => {
         </View>
         <View style={styles.form}>
             <Text style={{textAlign: "left"}}>Email:</Text>
-            <TextInput placeholder='jan.kowalski@gmail.com' style={styles.input}></TextInput>
+            <TextInput placeholder='jan.kowalski@gmail.com' value={email} onChangeText={setEmail} style={styles.input}></TextInput>
             <Text>Password:</Text>
-            <TextInput placeholder='********' style={styles.input}></TextInput>
-            <Pressable disabled={true}
-                style={({ pressed }) => [
-                {
-                        width: 250,
-                        marginTop: 20,
-                        padding: 12,
-                        borderRadius: 8,
-                        backgroundColor: "#FFF8DB", // kolor disabled
-                        opacity: pressed ? 0.6 : 1
-                }
-                ]}>
-                    <Link href="/login" style={{ textAlign: "center", color: "#555", fontWeight: "bold" }}>SIGN IN!</Link>
-            </Pressable>
+            <TextInput secureTextEntry={true} placeholder='password' value={password} onChangeText={setPassword} style={styles.input}></TextInput>
+            <TouchableOpacity onPress={signIn} style={styles.button}>
+                    <Text style={{ textAlign: "center", color: "#555", fontWeight: "bold" }}>SIGN IN!</Text>
+            </TouchableOpacity>
         </View>
     </View>
   )
@@ -62,5 +65,13 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFF',
         borderWidth: 1,
         
+    },
+
+    button:{
+        width: 250,
+        marginTop: 20,
+        padding: 12,
+        borderRadius: 8,
+        backgroundColor: "#FFF8DB"
     }
 })
