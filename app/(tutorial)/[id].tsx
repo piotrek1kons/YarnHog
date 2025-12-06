@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, Image, ScrollView} from "react-native";
+import { StyleSheet, View, Text, Image, ScrollView, Platform, StatusBar} from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { db } from "../../FirebaseConfig";
@@ -83,17 +83,20 @@ const TutorialDetails = () => {
         <ScrollView contentContainerStyle={styles.container}>
             <Text style={styles.title}>{tutorial.name}</Text>
             {photoUrl && <Image source={{ uri: photoUrl }} style={styles.image} />}
-            <Text style={styles.label}>Opis:</Text>
+            <Text style={styles.label}>Symbol:</Text>
+            {symbolUrl && <Image source={{ uri: symbolUrl }} style={styles.symbol} />}
+            <Text style={styles.label}>Description:</Text>
             <Text>{tutorial.description}</Text>
-            <Text style={styles.label}>Skrót:</Text>
+            <Text style={styles.label}>Shortcut:</Text>
             <Text>{tutorial.shortcut}</Text>
             <Text style={styles.label}>Video:</Text>
-            {tutorial.video ? (
-                <YouTubeVideo videoId={getYouTubeId(tutorial.video)} />
-            ) : (
-                <Text>Brak wideo</Text>
-            )}
-            {symbolUrl && <Image source={{ uri: symbolUrl }} style={styles.symbol} />}
+            <View style={styles.videoContainer}>
+                {tutorial.video ? (
+                    <YouTubeVideo videoId={getYouTubeId(tutorial.video)} />
+                ) : (
+                    <Text>No Video</Text>
+                )}
+            </View>
         </ScrollView>
     )
 }
@@ -104,6 +107,7 @@ const styles = StyleSheet.create({
   container: {
     padding: 16,
     backgroundColor: "#FFFBF5",
+
   },
   title: {
     fontSize: 28,
@@ -126,4 +130,11 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
     marginTop: 12,
   },
+
+  videoContainer: {
+  width: "100%",
+  height: 200,
+  marginBottom: 60
+},
+
 });
