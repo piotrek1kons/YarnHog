@@ -2,14 +2,13 @@ import { StyleSheet, Pressable, Image, Text, View, StatusBar, Platform, ScrollVi
 import { Link } from 'expo-router'
 
 import React, {useEffect, useState} from 'react'
-import { db } from '../FirebaseConfig';
+import { db } from '../../FirebaseConfig';
 import { collection, getDocs } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage'; 
-    
-import NavPanel from '../components/navPanel';
-import ImageButton from '../components/imageButton';
 
-const tutorials = () => {
+import ImageButton from '../../components/imageButton';
+
+const unSignedTutorials = () => {
     type TutorialButton = { id: string; label: any; link: any; imageUrl: string };
     const [buttons, setButtons] = useState<TutorialButton[]>([]);
 
@@ -59,13 +58,11 @@ const tutorials = () => {
           />
         ))}
       </ScrollView>
-
-      <NavPanel />
     </View>
   )
 }
 
-export default tutorials
+export default unSignedTutorials
 
 const styles = StyleSheet.create({
     container: {
