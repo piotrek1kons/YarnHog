@@ -4,8 +4,9 @@ import { Link } from 'expo-router'
 import React, {useEffect, useState} from 'react'
 import { db } from '../../FirebaseConfig';
 import { collection, getDocs } from 'firebase/firestore';
-import { getStorage, ref, getDownloadURL } from 'firebase/storage'; 
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 
+    
 import ImageButton from '../../components/imageButton';
 
 const unSignedTutorials = () => {
@@ -35,7 +36,7 @@ const unSignedTutorials = () => {
           return {
             id: doc.id,
             label: item.name,        
-            link: "/tutorial/" + doc.id,
+            link: `/${doc.id}`,
             imageUrl: symbolUrl,     
           };
         })
@@ -51,13 +52,15 @@ const unSignedTutorials = () => {
       <ScrollView contentContainerStyle={styles.buttonsContainer}>
         {buttons.map((btn: any) => (
           <ImageButton
+            key={btn.id}
             imageSource={{ uri: btn.imageUrl }}
             label={btn.label}
-            link="/home"
-            
+            link={btn.link}
+          
           />
         ))}
       </ScrollView>
+
     </View>
   )
 }
