@@ -36,7 +36,7 @@ const tutorials = () => {
           return {
             id: doc.id,
             label: item.name,        
-            link: "/tutorial/" + doc.id,
+            link: `/${doc.id}`,
             imageUrl: symbolUrl,     
           };
         })
@@ -52,10 +52,11 @@ const tutorials = () => {
       <ScrollView contentContainerStyle={styles.buttonsContainer}>
         {buttons.map((btn: any) => (
           <ImageButton
+            key={btn.id}
             imageSource={{ uri: btn.imageUrl }}
             label={btn.label}
-            link="/home"
-            
+            link={btn.link}
+          
           />
         ))}
       </ScrollView>
