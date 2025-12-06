@@ -1,9 +1,9 @@
 import { StyleSheet, Text, View, Image, StatusBar, Platform } from 'react-native'
 import React from 'react'
 
-import NavPanel from '../components/navPanel';
+import NavPanel from '../../components/navPanel';
 
-const rowCounter = () => {
+const unSignedRowCounter = () => {
   return (
     <View style={styles.container}>
       <View style={styles.counter}>
@@ -17,13 +17,12 @@ const rowCounter = () => {
           <Text style={styles.sizing}>+</Text>
         </View>
       </View>
-    
-      <NavPanel />
+
     </View>
   )
 }
 
-export default rowCounter
+export default unSignedRowCounter
 
 const styles = StyleSheet.create({
     container: {

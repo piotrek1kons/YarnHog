@@ -13,8 +13,14 @@ const RootLayout = () => {
     }
     }>
       <Stack.Screen name='index' options={{headerShown: false}}/>
-      <Stack.Screen name='login' options={{title: ''}}/>
+      <Stack.Screen name='(auth)' options={{headerShown: false}}/>
+      <Stack.Screen name='(tutorial)' options={{headerShown: false}}/>
+      <Stack.Screen name='home' options={{headerShown: false}}/>
       <Stack.Screen name='rowCounter' options={{title: 'Row Counter'}}/>
+      <Stack.Screen name='tutorials' options={{title: 'Tutorials'}}/>
+      <Stack.Screen name='profile' options={{title: 'Profile'}}/>
+      <Stack.Screen name='myMaterials' options={{title: 'My Materials'}}/>
+
     </Stack>
     
   )

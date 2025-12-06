@@ -6,6 +6,7 @@ import RowCounter from '../assets/img/row-counter.png';
 import Tutorials from '../assets/img/tutorials.png';
 import Projects from '../assets/img/projects.png';  
 
+import ImageButton from '../components/imageButton';
 
 const Home = () => {
   return (
@@ -14,26 +15,21 @@ const Home = () => {
             <Text style={styles.header}>YARNHOG</Text>
         </View>
         <View style={styles.buttonsContainer}>
-            <View style={{ alignItems: "center" }}>
-                <View style={styles.buttons}>
-                    <Link href="/rowCounter">
-                        <Image style={{ width: 160, height: 160 }} source={RowCounter}></Image>
-                    </Link>
-                </View>
-                <Text  style={{ marginTop: 8 }}>Row Counter</Text>
-            </View>
-            <View style={{ alignItems: "center" }}>
-                <View style={styles.buttons}>
-                    <Image style={{ width: 160, height: 160 }} source={Tutorials}></Image>
-                </View>
-                <Text  style={{ marginTop: 8 }}>Tutorials</Text>
-            </View>
-            <View style={{ alignItems: "center" }}>
-                <View style={styles.buttons}>
-                    <Image style={{ width: 160, height: 160 }} source={Projects}></Image>
-                </View>    
-                <Text  style={{ marginTop: 8 }}>Projects</Text>
-            </View>
+            <ImageButton
+                imageSource={RowCounter}
+                label="Row Counter"
+                link="/unSignedRowCounter"
+            />
+            <ImageButton
+                imageSource={Tutorials}
+                label="Tutorials"
+                link="/unSignedTutorials"
+            />
+            <ImageButton
+                imageSource={Projects}
+                label="Projects"
+                link="/unSignedProjects"
+            />
         </View>
         <View>
             <Pressable disabled={true}
@@ -60,9 +56,7 @@ const Home = () => {
                         opacity: pressed ? 0.6 : 1
                     }
                 ]}>
-                    <Text style={{ textAlign: "center", color: "#555", fontWeight: "bold" }}>
-                        SIGN UP!
-                    </Text>
+                    <Link href="/register" style={{ textAlign: "center", color: "#555", fontWeight: "bold" }}>SIGN UP!</Link>
             </Pressable>
 
         </View>
