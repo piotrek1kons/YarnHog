@@ -19,6 +19,8 @@ const RootLayout = () => {
       <Stack.Screen name='rowCounter' options={{title: 'Row Counter'}}/>
       <Stack.Screen name='tutorials' options={{title: 'Tutorials'}}/>
       <Stack.Screen name='profile' options={{title: 'Profile'}}/>
+      <Stack.Screen name='myMaterials' options={{title: 'My Materials'}}/>
+
     </Stack>
     
   )

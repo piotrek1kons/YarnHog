@@ -102,7 +102,7 @@ const NavPanel = () => {
                         <Text >Community</Text>
                     </View>
                     <View style={styles.navButton}>
-                        <Pressable style={styles.navImage}><Link href="/"><Image source={Materials} /></Link></Pressable>
+                        <Pressable style={styles.navImage}><Link href="/myMaterials"><Image source={Materials} /></Link></Pressable>
                         <Text >My Materials</Text>
                     </View>
                     <View style={styles.navButton}>
