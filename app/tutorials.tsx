@@ -1,77 +1,78 @@
 import { StyleSheet, Pressable, Image, Text, View, StatusBar, Platform, ScrollView } from 'react-native'
 import { Link } from 'expo-router'
 
-import React from 'react'
+import React, {useEffect, useState} from 'react'
+import { db } from '../FirebaseConfig';
+import { collection, getDocs } from 'firebase/firestore';
+import { getStorage, ref, getDownloadURL } from 'firebase/storage'; 
+
 import RowCounter from '../assets/img/row-counter.png';
 import Tutorials from '../assets/img/tutorials.png';
 import Projects from '../assets/img/projects.png'; 
 import Materials from '../assets/img/materials.png'; 
 import Profile from '../assets/img/profile.png'; 
 import Community from '../assets/img/community.png';     
+
 import NavPanel from '../components/navPanel';
+import ImageButton from '../components/imageButton';
 
+const tutorials = () => {
+    type TutorialButton = { id: string; label: any; link: any; imageUrl: string };
+    const [buttons, setButtons] = useState<TutorialButton[]>([]);
 
-const Home = () => {
+  useEffect(() => {
+    const fetchButtons = async () => {
+      const storage = getStorage();
+
+      const snapshot = await getDocs(collection(db, "tutorials"));
+
+      const data = await Promise.all(
+        snapshot.docs.map(async (doc) => {
+          const item = doc.data();
+
+          const symbolPath = item.image?.symbol; 
+
+          let symbolUrl = "";
+          try {
+            const imgRef = ref(storage, symbolPath);
+            symbolUrl = await getDownloadURL(imgRef);
+          } catch (err) {
+            console.log("Błąd pobierania symbolu:", err);
+          }
+
+          return {
+            id: doc.id,
+            label: item.name,        
+            link: "/tutorial/" + doc.id,
+            imageUrl: symbolUrl,     
+          };
+        })
+      );
+
+      setButtons(data);
+    };
+
+    fetchButtons();
+  }, []);
   return (
     <View style={styles.container}>
-        <ScrollView contentContainerStyle={styles.buttonsContainer}>
-            <View style={{ alignItems: "center" }}>
-                <View style={styles.buttons}>
-                    <Link href="/rowCounter">
-                        <Image style={{ width: 160, height: 160 }} source={RowCounter}></Image>
-                    </Link>
-                </View>
-                <Text  style={{ marginTop: 8 }}>Row Counter</Text>
-            </View>
-            <View style={{ alignItems: "center" }}>
-                <View style={styles.buttons}>
-                    <Image style={{ width: 160, height: 160 }} source={Tutorials}></Image>
-                </View>
-                <Text  style={{ marginTop: 8 }}>Tutorials</Text>
-            </View>
-            <View style={{ alignItems: "center" }}>
-                <View style={styles.buttons}>
-                    <Image style={{ width: 160, height: 160 }} source={Projects}></Image>
-                </View>    
-                <Text  style={{ marginTop: 8 }}>Projects</Text>
-            </View>
-            <View style={{ alignItems: "center" }}>
-                <View style={styles.buttons}>
-                    <Image style={{ width: 160, height: 160 }} source={Materials}></Image>
-                </View>    
-                <Text  style={{ marginTop: 8 }}>My Materials</Text>
-            </View>
-            <View style={{ alignItems: "center" }}>
-                <View style={styles.buttons}>
-                    <Image style={{ width: 160, height: 160 }} source={Profile}></Image>
-                </View>    
-                <Text  style={{ marginTop: 8 }}>Profile</Text>
-            </View>
-            <View style={{ alignItems: "center" }}>
-                <View style={styles.buttons}>
-                    <Image style={{ width: 160, height: 160 }} source={Community}></Image>
-                </View>    
-                <Text  style={{ marginTop: 8 }}>Community</Text>
-            </View>
-            <View style={{ alignItems: "center" }}>
-                <View style={styles.buttons}>
-                    <Image style={{ width: 160, height: 160 }} source={Community}></Image>
-                </View>    
-                <Text  style={{ marginTop: 8 }}>Community</Text>
-            </View>
-            <View style={{ alignItems: "center" }}>
-                <View style={styles.buttons}>
-                    <Image style={{ width: 160, height: 160 }} source={Community}></Image>
-                </View>    
-                <Text  style={{ marginTop: 8 }}>Community</Text>
-            </View>
-        </ScrollView>
-        <NavPanel />   
+      <ScrollView contentContainerStyle={styles.buttonsContainer}>
+        {buttons.map((btn: any) => (
+          <ImageButton
+            imageSource={{ uri: btn.imageUrl }}
+            label={btn.label}
+            link="/home"
+            
+          />
+        ))}
+      </ScrollView>
+
+      <NavPanel />
     </View>
   )
 }
 
-export default Home
+export default tutorials
 
 const styles = StyleSheet.create({
     container: {
