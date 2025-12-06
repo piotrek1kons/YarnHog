@@ -5,6 +5,7 @@ import { db } from "../../FirebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { WebView } from "react-native-webview";
+import YouTubeVideo from "../../components/youtubeVideo";
 
 type Tutorial = {
     name: string;
@@ -15,6 +16,12 @@ type Tutorial = {
         photo: string;
         symbol: string;
     };
+};
+
+const getYouTubeId = (url: string) => {
+  const regex = /v=([a-zA-Z0-9_-]{11})/;
+  const match = url.match(regex);
+  return match ? match[1] : "";
 };
 
 const TutorialDetails = () => {
@@ -81,10 +88,11 @@ const TutorialDetails = () => {
             <Text style={styles.label}>Skrót:</Text>
             <Text>{tutorial.shortcut}</Text>
             <Text style={styles.label}>Video:</Text>
-            <WebView
-                style={{ width: "100%", height: 200 }}
-                source={{ uri: tutorial.video }}
-            />
+            {tutorial.video ? (
+                <YouTubeVideo videoId={getYouTubeId(tutorial.video)} />
+            ) : (
+                <Text>Brak wideo</Text>
+            )}
             {symbolUrl && <Image source={{ uri: symbolUrl }} style={styles.symbol} />}
         </ScrollView>
     )
