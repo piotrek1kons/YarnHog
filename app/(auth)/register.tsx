@@ -1,13 +1,13 @@
 import { StyleSheet, Text, View, Image, TouchableOpacity, TextInput, StatusBar, Platform, Alert } from 'react-native'
 import { router, Link } from 'expo-router'
-import { auth, db } from '../FirebaseConfig'
+import { auth, db } from '../../FirebaseConfig'
 import { collection, query, where, getDocs, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import React, { useState } from 'react'
 import { createUserWithEmailAndPassword} from 'firebase/auth'
 
 
-import Logo from '../assets/img/logo.png';
-import Back from '../assets/img/back.png';
+import Logo from '../../assets/img/logo.png';
+import Back from '../../assets/img/back.png';
 
 const Register = () => {
     const [username, setUsername] = useState("");

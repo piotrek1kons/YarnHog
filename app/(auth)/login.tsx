@@ -1,11 +1,11 @@
 import { StyleSheet, Text, View, Image, Pressable, TextInput, StatusBar, Platform, Touchable, TouchableOpacity } from 'react-native'
 import { Link, router } from 'expo-router'
-import { auth } from '../FirebaseConfig'
+import { auth } from '../../FirebaseConfig'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import React, { useState } from 'react'
 
-import Logo from '../assets/img/logo.png';
-import Back from '../assets/img/back.png';
+import Logo from '../../assets/img/logo.png';
+import Back from '../../assets/img/back.png';
 
 const Login = () => {
     const [email, setEmail] = useState('');
