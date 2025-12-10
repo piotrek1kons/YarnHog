@@ -7,7 +7,7 @@ import { getStorage, ref, getDownloadURL } from "firebase/storage";
 
 
 type Project = {
-    name: string;
+    title: string;
     image: string;
     materials: string;
     description: string;
