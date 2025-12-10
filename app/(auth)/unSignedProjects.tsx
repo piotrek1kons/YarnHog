@@ -1,42 +1,42 @@
 import { StyleSheet, Pressable, Image, Text, View, StatusBar, Platform, ScrollView } from 'react-native'
-import { Link } from 'expo-router'
 
 import React, {useEffect, useState} from 'react'
 import { db } from '../../FirebaseConfig';
 import { collection, getDocs } from 'firebase/firestore';
-import { getStorage, ref, getDownloadURL } from 'firebase/storage'; 
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 
+    
 import ImageButton from '../../components/imageButton';
 
 const unSignedProjects = () => {
-    type TutorialButton = { id: string; label: any; link: any; imageUrl: string };
-    const [buttons, setButtons] = useState<TutorialButton[]>([]);
+    type ProjectButton = { id: string; label: any; link: any; imageUrl: string };
+    const [buttons, setButtons] = useState<ProjectButton[]>([]);
 
   useEffect(() => {
     const fetchButtons = async () => {
       const storage = getStorage();
 
-      const snapshot = await getDocs(collection(db, "tutorials"));
+      const snapshot = await getDocs(collection(db, "projects"));
 
       const data = await Promise.all(
         snapshot.docs.map(async (doc) => {
           const item = doc.data();
 
-          const symbolPath = item.image?.symbol; 
+          const imagePath = item.image; 
 
-          let symbolUrl = "";
+          let imageUrl = "";
           try {
-            const imgRef = ref(storage, symbolPath);
-            symbolUrl = await getDownloadURL(imgRef);
+            const imgRef = ref(storage, imagePath);
+            imageUrl = await getDownloadURL(imgRef);
           } catch (err) {
             console.log("Błąd pobierania symbolu:", err);
           }
 
           return {
             id: doc.id,
-            label: item.name,        
-            link: "/tutorial/" + doc.id,
-            imageUrl: symbolUrl,     
+            label: item.title,        
+            link: `/${doc.id}`,
+            imageUrl: imageUrl,     
           };
         })
       );
@@ -51,13 +51,15 @@ const unSignedProjects = () => {
       <ScrollView contentContainerStyle={styles.buttonsContainer}>
         {buttons.map((btn: any) => (
           <ImageButton
+            key={btn.id}
             imageSource={{ uri: btn.imageUrl }}
             label={btn.label}
-            link="/home"
-            
+            link={btn.link}
+          
           />
         ))}
       </ScrollView>
+
     </View>
   )
 }
