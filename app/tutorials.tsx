@@ -5,14 +5,7 @@ import React, {useEffect, useState} from 'react'
 import { db } from '../FirebaseConfig';
 import { collection, getDocs } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage'; 
-
-import RowCounter from '../assets/img/row-counter.png';
-import Tutorials from '../assets/img/tutorials.png';
-import Projects from '../assets/img/projects.png'; 
-import Materials from '../assets/img/materials.png'; 
-import Profile from '../assets/img/profile.png'; 
-import Community from '../assets/img/community.png';     
-
+    
 import NavPanel from '../components/navPanel';
 import ImageButton from '../components/imageButton';
 
@@ -30,20 +23,22 @@ const tutorials = () => {
         snapshot.docs.map(async (doc) => {
           const item = doc.data();
 
-          const symbolPath = item.image?.symbol; 
+          const symbolPath = item.image?.symbol;
 
           let symbolUrl = "";
-          try {
-            const imgRef = ref(storage, symbolPath);
-            symbolUrl = await getDownloadURL(imgRef);
-          } catch (err) {
-            console.log("Błąd pobierania symbolu:", err);
+          if (symbolPath) {
+            try {
+              const imgRef = ref(storage, symbolPath);
+              symbolUrl = await getDownloadURL(imgRef);
+            } catch (err) {
+              console.log("Błąd pobierania symbolu:", err);
+            }
           }
 
           return {
             id: doc.id,
             label: item.name,        
-            link: "/tutorial/" + doc.id,
+            link: `/(tutorial)/${doc.id}`,
             imageUrl: symbolUrl,     
           };
         })
@@ -59,10 +54,11 @@ const tutorials = () => {
       <ScrollView contentContainerStyle={styles.buttonsContainer}>
         {buttons.map((btn: any) => (
           <ImageButton
+            key={btn.id}
             imageSource={{ uri: btn.imageUrl }}
             label={btn.label}
-            link="/home"
-            
+            link={btn.link}
+          
           />
         ))}
       </ScrollView>

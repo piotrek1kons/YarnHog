@@ -1,7 +1,9 @@
 import { StyleSheet, Pressable, Image, Text, View, StatusBar, Platform } from 'react-native'
-import { Link } from 'expo-router'
+import { Link, useRouter } from 'expo-router'
+import { auth, db } from "../FirebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import RowCounter from '../assets/img/row-counter.png';
 import Tutorials from '../assets/img/tutorials.png';
 import Projects from '../assets/img/projects.png'; 
@@ -12,12 +14,44 @@ import NavPanel from '../components/navPanel';
 
 
 const Home = () => {
+    const router = useRouter();
+    const user = auth.currentUser;
+
+    const [username, setUsername] = useState<string>("");
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            if(!user) return;
+
+            try{
+                const ref = doc(db, "users", user.uid);
+                const snap = await getDoc(ref);
+
+                if(snap.exists()){
+                    const data = snap.data();
+                    setUsername(data.username);
+                }
+            }catch(err){
+                console.log("Error fetching user data:", err);
+            }
+        };
+        fetchUserData();
+    }, [user]);
+
+    const handleLogout = async() => {
+        await auth.signOut();
+        router.replace("/");
+    }
+
   return (
     <View style={styles.container}>
         
         <View style={styles.profil}>
             <Image style={styles.profil} source={Profile}></Image>
-            <Text style={{fontSize: 24, fontWeight: 'bold'}}>Username</Text>
+            <Text style={{fontSize: 24, fontWeight: 'bold'}}>{username || "Loading..."}</Text>
+            <Pressable style={styles.editButton} onPress={() => router.push('/editProfile')}>
+                <Text style={styles.editButtonText}>Edit Profile</Text>
+            </Pressable>
         </View>
         <View style={{marginTop: 50}}>
             <Text style={{margin: 10, fontSize: 18, fontWeight: 'bold'}}>Email:</Text>
@@ -56,6 +90,20 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         
     },  
+
+    editButton: {
+        marginTop: 16,
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        backgroundColor: '#E7B469',
+        borderRadius: 20,
+    },
+
+    editButtonText: {
+        color: '#1C1C1C',
+        fontSize: 16,
+        fontWeight: 'bold',
+    }
 
     
 })

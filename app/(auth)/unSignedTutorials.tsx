@@ -4,8 +4,9 @@ import { Link } from 'expo-router'
 import React, {useEffect, useState} from 'react'
 import { db } from '../../FirebaseConfig';
 import { collection, getDocs } from 'firebase/firestore';
-import { getStorage, ref, getDownloadURL } from 'firebase/storage'; 
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 
+    
 import ImageButton from '../../components/imageButton';
 
 const unSignedTutorials = () => {
@@ -22,20 +23,22 @@ const unSignedTutorials = () => {
         snapshot.docs.map(async (doc) => {
           const item = doc.data();
 
-          const symbolPath = item.image?.symbol; 
+          const symbolPath = item.image?.symbol;
 
           let symbolUrl = "";
-          try {
-            const imgRef = ref(storage, symbolPath);
-            symbolUrl = await getDownloadURL(imgRef);
-          } catch (err) {
-            console.log("Błąd pobierania symbolu:", err);
+          if (symbolPath) {
+            try {
+              const imgRef = ref(storage, symbolPath);
+              symbolUrl = await getDownloadURL(imgRef);
+            } catch (err) {
+              console.log("Błąd pobierania symbolu:", err);
+            }
           }
 
           return {
             id: doc.id,
             label: item.name,        
-            link: "/tutorial/" + doc.id,
+            link: `/(tutorial)/${doc.id}`,
             imageUrl: symbolUrl,     
           };
         })
@@ -51,13 +54,15 @@ const unSignedTutorials = () => {
       <ScrollView contentContainerStyle={styles.buttonsContainer}>
         {buttons.map((btn: any) => (
           <ImageButton
+            key={btn.id}
             imageSource={{ uri: btn.imageUrl }}
             label={btn.label}
-            link="/home"
-            
+            link={btn.link}
+          
           />
         ))}
       </ScrollView>
+
     </View>
   )
 }
