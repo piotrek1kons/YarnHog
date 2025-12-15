@@ -9,7 +9,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyDOv-v5af6zOakZ8RGWwRsFSYw7xPbk-wg",
   authDomain: "yarnhog-5feac.firebaseapp.com",
   projectId: "yarnhog-5feac",
-  storageBucket: "yarnhog-5feac.firebasestorage.app",
+  storageBucket: "yarnhog-5feac.appspot.com",
   messagingSenderId: "1015166784446",
   appId: "1:1015166784446:web:3df3ec502d67f2723f9fef"
 };

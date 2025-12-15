@@ -23,20 +23,22 @@ const unSignedTutorials = () => {
         snapshot.docs.map(async (doc) => {
           const item = doc.data();
 
-          const symbolPath = item.image?.symbol; 
+          const symbolPath = item.image?.symbol;
 
           let symbolUrl = "";
-          try {
-            const imgRef = ref(storage, symbolPath);
-            symbolUrl = await getDownloadURL(imgRef);
-          } catch (err) {
-            console.log("Błąd pobierania symbolu:", err);
+          if (symbolPath) {
+            try {
+              const imgRef = ref(storage, symbolPath);
+              symbolUrl = await getDownloadURL(imgRef);
+            } catch (err) {
+              console.log("Błąd pobierania symbolu:", err);
+            }
           }
 
           return {
             id: doc.id,
             label: item.name,        
-            link: `/${doc.id}`,
+            link: `/(tutorial)/${doc.id}`,
             imageUrl: symbolUrl,     
           };
         })
