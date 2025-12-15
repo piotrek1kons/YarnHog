@@ -49,6 +49,9 @@ const Home = () => {
         <View style={styles.profil}>
             <Image style={styles.profil} source={Profile}></Image>
             <Text style={{fontSize: 24, fontWeight: 'bold'}}>{username || "Loading..."}</Text>
+            <Pressable style={styles.editButton} onPress={() => router.push('/editProfile')}>
+                <Text style={styles.editButtonText}>Edit Profile</Text>
+            </Pressable>
         </View>
         <View style={{marginTop: 50}}>
             <Text style={{margin: 10, fontSize: 18, fontWeight: 'bold'}}>Email:</Text>
@@ -87,6 +90,20 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         
     },  
+
+    editButton: {
+        marginTop: 16,
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        backgroundColor: '#E7B469',
+        borderRadius: 20,
+    },
+
+    editButtonText: {
+        color: '#1C1C1C',
+        fontSize: 16,
+        fontWeight: 'bold',
+    }
 
     
 })
