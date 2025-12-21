@@ -59,7 +59,7 @@ const Projects = () => {
           />
         ))}
       </ScrollView>
-        <NavPanel />
+      <NavPanel />
     </View>
   )
 }
@@ -97,5 +97,5 @@ const styles = StyleSheet.create({
     button:{
         width: 200,
         marginTop: 20
-    }
+    },
 })
