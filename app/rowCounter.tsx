@@ -1,21 +1,59 @@
-import { StyleSheet, Text, View, Image, StatusBar, Platform } from 'react-native'
-import React from 'react'
+import { StyleSheet, Text, View, Image, StatusBar, Platform, Pressable } from 'react-native'
+import React, { useState, useEffect } from 'react'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 import NavPanel from '../components/navPanel';
 
 const rowCounter = () => {
+  const [count, setCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadCount();
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading) {
+      saveCount();
+    }
+  }, [count]);
+
+  const loadCount = async () => {
+    try {
+      const savedCount = await AsyncStorage.getItem('rowCount');
+      if (savedCount !== null) {
+        setCount(parseInt(savedCount, 10));
+      }
+    } catch (error) {
+      console.error('Error loading count:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const saveCount = async () => {
+    try {
+      await AsyncStorage.setItem('rowCount', count.toString());
+    } catch (error) {
+      console.error('Error saving count:', error);
+    }
+  };
+
+  const increment = () => setCount(count + 1);
+  const decrement = () => setCount(Math.max(0, count - 1));
+
   return (
     <View style={styles.container}>
       <View style={styles.counter}>
-        <View style={styles.button}>
+        <Pressable style={styles.button} onPress={decrement}>
           <Text style={styles.sizing}>-</Text>
-        </View>
+        </Pressable>
         <View>
-          <Text style={styles.sizing}>0</Text>
+          <Text style={styles.sizing}>{count}</Text>
         </View>
-        <View style={styles.button}>
+        <Pressable style={styles.button} onPress={increment}>
           <Text style={styles.sizing}>+</Text>
-        </View>
+        </Pressable>
       </View>
     
       <NavPanel />
