@@ -1,62 +1,43 @@
-import { StyleSheet, Text, View, Image, StatusBar, Platform, Pressable } from 'react-native'
-import React, { useState, useEffect } from 'react'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import { StyleSheet, Text, View, Image, StatusBar, Platform, ScrollView, Pressable } from 'react-native'
+import React, { useState } from 'react'
 
-import NavPanel from '../components/navPanel';
+import Counter from '../components/counter';
+import { count } from 'firebase/firestore';
+import NavPanel from '@/components/navPanel';
 
 const rowCounter = () => {
-  const [count, setCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  const [counters, setCounters] = useState([{ id: 1 }]);
+  const [nextId, setNextId] = useState(2);
 
-  useEffect(() => {
-    loadCount();
-  }, []);
-
-  useEffect(() => {
-    if (!isLoading) {
-      saveCount();
-    }
-  }, [count]);
-
-  const loadCount = async () => {
-    try {
-      const savedCount = await AsyncStorage.getItem('rowCount');
-      if (savedCount !== null) {
-        setCount(parseInt(savedCount, 10));
-      }
-    } catch (error) {
-      console.error('Error loading count:', error);
-    } finally {
-      setIsLoading(false);
-    }
+  const addCounter = () => {
+    setCounters(prev => [...prev, { id: nextId }]);
+    setNextId(prev => prev + 1);
   };
 
-  const saveCount = async () => {
-    try {
-      await AsyncStorage.setItem('rowCount', count.toString());
-    } catch (error) {
-      console.error('Error saving count:', error);
-    }
+  const removeCounter = (id: number) => {
+    if(counters.length === 1) return;
+    setCounters(prev => prev.filter(counter => counter.id !== id));
   };
-
-  const increment = () => setCount(count + 1);
-  const decrement = () => setCount(Math.max(0, count - 1));
-
+  
   return (
     <View style={styles.container}>
-      <View style={styles.counter}>
-        <Pressable style={styles.button} onPress={decrement}>
-          <Text style={styles.sizing}>-</Text>
+        <ScrollView style={styles.scroll}>
+            {counters.map((counter) => (
+                <View key={counter.id} style={styles.counters}>
+                    <Counter />
+                    {counters.length > 1 && (
+                    <Pressable style={styles.deleteButton} onPress={() => removeCounter(counter.id)}>
+                        <Text style={styles.deleteButtonText}>X</Text>
+                    </Pressable>
+                    )}
+                </View>
+            ))}
+        </ScrollView>
+        <Pressable style={styles.addCounter} onPress={addCounter}>
+            <Text style={styles.addCounterText}>Add Counter</Text>
         </Pressable>
-        <View>
-          <Text style={styles.sizing}>{count}</Text>
-        </View>
-        <Pressable style={styles.button} onPress={increment}>
-          <Text style={styles.sizing}>+</Text>
-        </Pressable>
-      </View>
-    
-      <NavPanel />
+        <NavPanel/>
     </View>
   )
 }
@@ -71,38 +52,42 @@ const styles = StyleSheet.create({
       paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
     },
 
-    counter:{
-      flexDirection: 'row',
-      flexWrap: "wrap",
-      alignItems: 'center',
-      justifyContent: "center",
-      gap: 60,
+    scroll:{
+        maxHeight: "80%", 
     },
 
-    sizing: {
-      fontSize: 56,
-      textAlign: "center",
-      lineHeight: 60,
+    addCounter:{
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#F9E7C6",
+        borderRadius: 40,
+        marginBottom: 20,
+        width: 300,
+        height: 60,
     },
 
-    button:{
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      backgroundColor: '#FFF8DB',
-      justifyContent: 'center',
-      alignItems: 'center', 
+    addCounterText: {
+        fontSize: 24,          
+        fontWeight: "600",
+        textAlign: "center",
     },
 
-    navBar:{
-      position: "absolute",
-      bottom: 0,
-      left: 0,
-      right: 0,
-      height: 60,
-      backgroundColor: "#FFF8DB",
-      justifyContent: "center",
-      alignItems: "center",
-      marginBottom: Platform.OS === "android" ? 40 : 0,
+    deleteButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 20,
+        backgroundColor: "#F4C2C2",
+        borderRadius: 20,
     },
+
+    deleteButtonText: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: "#000",
+        textAlign: "center",
+    },
+
+    counters:{
+        marginTop: 10,
+    }
 })

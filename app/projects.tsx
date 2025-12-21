@@ -1,14 +1,14 @@
 import { StyleSheet, Pressable, Image, Text, View, StatusBar, Platform, ScrollView } from 'react-native'
 
 import React, {useEffect, useState} from 'react'
-import { db } from '../../FirebaseConfig';
+import { db } from '../FirebaseConfig';
 import { collection, getDocs } from 'firebase/firestore';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 
-    
-import ImageButton from '../../components/imageButton';
+import NavPanel from '../components/navPanel';
+import ImageButton from '../components/imageButton';
 
-const unSignedProjects = () => {
+const Projects = () => {
     type ProjectButton = { id: string; label: any; link: any; imageUrl: string };
     const [buttons, setButtons] = useState<ProjectButton[]>([]);
 
@@ -59,12 +59,12 @@ const unSignedProjects = () => {
           />
         ))}
       </ScrollView>
-
+      <NavPanel />
     </View>
   )
 }
 
-export default unSignedProjects
+export default Projects
 
 const styles = StyleSheet.create({
     container: {
@@ -97,5 +97,5 @@ const styles = StyleSheet.create({
     button:{
         width: 200,
         marginTop: 20
-    }
+    },
 })
