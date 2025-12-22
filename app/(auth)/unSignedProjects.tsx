@@ -3,7 +3,6 @@ import { StyleSheet, Pressable, Image, Text, View, StatusBar, Platform, ScrollVi
 import React, {useEffect, useState} from 'react'
 import { db } from '../../FirebaseConfig';
 import { collection, getDocs } from 'firebase/firestore';
-import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 
     
 import ImageButton from '../../components/imageButton';
@@ -14,32 +13,20 @@ const unSignedProjects = () => {
 
   useEffect(() => {
     const fetchButtons = async () => {
-      const storage = getStorage();
-
       const snapshot = await getDocs(collection(db, "projects"));
 
-      const data = await Promise.all(
-        snapshot.docs.map(async (doc) => {
+      const data = snapshot.docs
+        .filter(doc => doc.data().is_public === true)
+        .map((doc) => {
           const item = doc.data();
-
-          const imagePath = item.image; 
-
-          let imageUrl = "";
-          try {
-            const imgRef = ref(storage, imagePath);
-            imageUrl = await getDownloadURL(imgRef);
-          } catch (err) {
-            console.log("Błąd pobierania symbolu:", err);
-          }
 
           return {
             id: doc.id,
             label: item.title,        
             link: `/${doc.id}`,
-            imageUrl: imageUrl,     
+            imageUrl: item.image || '',     
           };
-        })
-      );
+        });
 
       setButtons(data);
     };

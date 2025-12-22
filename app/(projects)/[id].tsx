@@ -3,7 +3,6 @@ import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { db } from "../../FirebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
-import { getStorage, ref, getDownloadURL } from "firebase/storage";
 
 
 type Project = {
@@ -17,7 +16,6 @@ type Project = {
 const ProjectDetails = () => {
     const { id } = useLocalSearchParams();
     const [project, setProject] = useState<Project | null>(null);
-    const [imageUrl, setImageUrl] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchProject = async () => {
@@ -29,18 +27,6 @@ const ProjectDetails = () => {
                 if(docSnap.exists()){
                     const data = docSnap.data() as Project;
                     setProject(data);
-                    
-                    const storage = getStorage();
-
-                    if(data.image){
-                        try{
-                            const imageRef = ref(storage, data.image);
-                            const imageDownloadUrl = await getDownloadURL(imageRef);
-                            setImageUrl(imageDownloadUrl);
-                        }catch (err){
-                            console.log("Error fetching photo URL:", err);
-                        }
-                    }
                 }else{
                     console.log("File dosen't exist");
                 }
@@ -61,7 +47,7 @@ const ProjectDetails = () => {
     return (
         <ScrollView contentContainerStyle={styles.container}>
             <Text style={styles.title}>{project.title}</Text>
-            {imageUrl && <Image source={{ uri: imageUrl }} style={styles.image} />}
+            {project.image && <Image source={{ uri: project.image }} style={styles.image} />}
             <Text style={styles.label}>Materials:</Text>
             <Text>{project.materials}</Text>
             <Text style={styles.label}>Description:</Text>
