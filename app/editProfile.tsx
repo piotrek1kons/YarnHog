@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable, Alert, StatusBar, Platform, Image } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Pressable, Alert, StatusBar, Platform, Image, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { auth, db, storage } from '../FirebaseConfig';
+import { auth, db } from '../FirebaseConfig';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
-import { ref, uploadBytes, uploadString, getDownloadURL } from 'firebase/storage';
-import * as FileSystem from 'expo-file-system';
 
 const EditProfile = () => {
     const router = useRouter();
@@ -43,7 +41,7 @@ const EditProfile = () => {
             const ref = doc(db, 'users', user.uid);
             await updateDoc(ref, {
                 username: username.trim(),
-                avatarUrl: avatarUrl.trim(),
+                avatarUrl: avatarUrl,
             });
             Alert.alert('Sukces', 'Profil zaktualizowany.');
             router.back();
@@ -52,6 +50,29 @@ const EditProfile = () => {
             Alert.alert('Błąd', 'Nie udało się zaktualizować profilu.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const uploadImage = async (uri: string): Promise<string> => {
+        try {
+            console.log('Konwertowanie avatara na base64...');
+            
+            const response = await fetch(uri);
+            const blob = await response.blob();
+            
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const base64 = reader.result as string;
+                    console.log('Avatar skonwertowany, rozmiar:', base64.length);
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        } catch (error) {
+            console.error('Błąd przy konwersji obrazu:', error);
+            throw error;
         }
     };
 
@@ -66,8 +87,11 @@ const EditProfile = () => {
 
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
                 quality: 0.8,
             });
+            
             if (result.canceled) return;
 
             const asset = result.assets?.[0];
@@ -75,21 +99,14 @@ const EditProfile = () => {
 
             setUploading(true);
 
-            const fileExt = (asset.fileName?.split('.').pop() || asset.uri.split('.').pop() || 'jpg').toLowerCase();
-            const safeName = (username || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || user.uid;
-            const storagePath = `avatars/${safeName}.${fileExt}`;
-            const storageRef = ref(storage, storagePath);
-/*
-            const base64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.Base64 });
-            await uploadString(storageRef, base64, 'base64');
-            const url = await getDownloadURL(storageRef);
+            const imageBase64 = await uploadImage(asset.uri);
+            console.log('Avatar skonwertowany na base64');
 
-            setAvatarUrl(url);
+            setAvatarUrl(imageBase64);
             await updateDoc(doc(db, 'users', user.uid), {
-                avatarUrl: url,
-                avatarPath: storagePath,
+                avatarUrl: imageBase64,
             });
-*/
+
             Alert.alert('Sukces', 'Avatar wgrany i zapisany w profilu.');
         } catch (e) {
             console.log('Avatar upload failed', e);
@@ -101,42 +118,50 @@ const EditProfile = () => {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Edytuj profil</Text>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+                <Text style={styles.title}>Edytuj profil</Text>
 
-            <View style={styles.section}>
-                <Text style={styles.label}>Nazwa użytkownika</Text>
-                <TextInput
-                    style={styles.input}
-                    value={username}
-                    onChangeText={setUsername}
-                    placeholder="Twoja nazwa"
-                />
-            </View>
+                <View style={styles.section}>
+                    <Text style={styles.label}>Nazwa użytkownika</Text>
+                    <TextInput
+                        style={styles.input}
+                        value={username}
+                        onChangeText={setUsername}
+                        placeholder="Twoja nazwa"
+                    />
+                </View>
 
-            <View style={styles.section}>
-                <Text style={styles.label}>Email (tylko podgląd)</Text>
-                <TextInput style={styles.input} value={email} editable={false} />
-            </View>
+                <View style={styles.section}>
+                    <Text style={styles.label}>Email (tylko podgląd)</Text>
+                    <TextInput style={styles.input} value={email} editable={false} />
+                </View>
 
-            <View style={styles.section}>
-                <Text style={styles.label}>Avatar</Text>
-                {avatarUrl ? (
-                    <Image source={{ uri: avatarUrl }} style={styles.avatarPreview} />
-                ) : (
-                    <Text style={styles.help}>Brak avatara. Wybierz z galerii, aby dodać.</Text>
-                )}
-                <Pressable style={[styles.button, styles.pickButton, uploading && styles.buttonDisabled]} onPress={pickAndUploadAvatar} disabled={uploading}>
-                    <Text style={styles.buttonText}>{uploading ? 'Wgrywanie...' : 'Wybierz z galerii'}</Text>
+                <View style={styles.section}>
+                    <Text style={styles.label}>Avatar</Text>
+                    {avatarUrl ? (
+                        <Image source={{ uri: avatarUrl }} style={styles.avatarPreview} />
+                    ) : (
+                        <Text style={styles.help}>Brak avatara. Wybierz z galerii, aby dodać.</Text>
+                    )}
+                    <Pressable 
+                        style={[styles.pickButton, uploading && styles.buttonDisabled]} 
+                        onPress={pickAndUploadAvatar} 
+                        disabled={uploading}
+                    >
+                        <Text style={styles.pickButtonText}>
+                            {uploading ? 'Wgrywanie...' : avatarUrl ? 'Zmień avatar' : 'Wybierz avatar'}
+                        </Text>
+                    </Pressable>
+                </View>
+
+                <Pressable style={[styles.button, loading && styles.buttonDisabled]} onPress={handleSave} disabled={loading}>
+                    <Text style={styles.buttonText}>{loading ? 'Zapisywanie...' : 'Zapisz zmiany'}</Text>
                 </Pressable>
-            </View>
 
-            <Pressable style={[styles.button, loading && styles.buttonDisabled]} onPress={handleSave} disabled={loading}>
-                <Text style={styles.buttonText}>{loading ? 'Zapisywanie...' : 'Zapisz zmiany'}</Text>
-            </Pressable>
-
-            <Pressable style={[styles.secondaryButton]} onPress={() => router.back()}>
-                <Text style={styles.secondaryButtonText}>Anuluj</Text>
-            </Pressable>
+                <Pressable style={[styles.secondaryButton]} onPress={() => router.back()}>
+                    <Text style={styles.secondaryButtonText}>Anuluj</Text>
+                </Pressable>
+            </ScrollView>
         </View>
     );
 };
@@ -148,64 +173,83 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#FFFBF5',
         paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    },
+    scrollContent: {
         paddingHorizontal: 20,
+        paddingVertical: 20,
+        paddingBottom: 40,
     },
     title: {
         fontSize: 24,
         fontWeight: 'bold',
         marginVertical: 20,
         textAlign: 'center',
+        color: '#6B5E4B',
     },
     section: {
-        marginBottom: 16,
+        marginBottom: 20,
     },
     label: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: '600',
+        color: '#6B5E4B',
         marginBottom: 8,
     },
     input: {
-        backgroundColor: '#F9E7C6',
+        backgroundColor: '#FFF8DB',
+        borderWidth: 1,
+        borderColor: '#E7B469',
         borderRadius: 12,
         paddingHorizontal: 12,
-        paddingVertical: 10,
+        paddingVertical: 12,
         fontSize: 16,
+        color: '#1C1C1C',
     },
     avatarPreview: {
         width: 120,
         height: 120,
         borderRadius: 60,
         marginTop: 12,
+        marginBottom: 12,
         alignSelf: 'center',
+        resizeMode: 'cover',
     },
     help: {
         fontSize: 12,
-        color: '#555',
+        color: '#6B5E4B',
         marginTop: 8,
         textAlign: 'center',
+        fontStyle: 'italic',
     },
     button: {
         backgroundColor: '#E7B469',
-        borderRadius: 20,
+        borderRadius: 12,
         paddingVertical: 12,
+        paddingHorizontal: 20,
         alignItems: 'center',
         marginTop: 10,
     },
     pickButton: {
-        backgroundColor: '#FFD28A',
+        backgroundColor: '#E7B469',
         marginTop: 8,
+    },
+    pickButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#1C1C1C',
     },
     buttonDisabled: {
         opacity: 0.6,
     },
     buttonText: {
         fontSize: 16,
-        fontWeight: 'bold',
+        fontWeight: '600',
         color: '#1C1C1C',
     },
     secondaryButton: {
-        borderRadius: 20,
+        borderRadius: 12,
         paddingVertical: 12,
+        paddingHorizontal: 20,
         alignItems: 'center',
         marginTop: 10,
         borderWidth: 1,
@@ -213,7 +257,7 @@ const styles = StyleSheet.create({
     },
     secondaryButtonText: {
         fontSize: 16,
-        fontWeight: 'bold',
+        fontWeight: '600',
         color: '#E7B469',
     },
 });
