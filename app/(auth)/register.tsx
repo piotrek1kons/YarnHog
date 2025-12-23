@@ -47,7 +47,7 @@ const Register = () => {
                 ID: user.uid,           
                 username: username,
                 email: email,
-                avatar: "",             
+                avatarUrl: "",             
                 createdAt: serverTimestamp()
             });
 
