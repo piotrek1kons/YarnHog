@@ -79,19 +79,17 @@ const EditProfile = () => {
             const safeName = (username || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || user.uid;
             const storagePath = `avatars/${safeName}.${fileExt}`;
             const storageRef = ref(storage, storagePath);
-
-            // Prefer uploadString with base64 for local files to avoid Blob issues
+/*
             const base64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.Base64 });
             await uploadString(storageRef, base64, 'base64');
             const url = await getDownloadURL(storageRef);
 
-            // Update local state and persist immediately to Firestore for this user
             setAvatarUrl(url);
             await updateDoc(doc(db, 'users', user.uid), {
                 avatarUrl: url,
                 avatarPath: storagePath,
             });
-
+*/
             Alert.alert('Sukces', 'Avatar wgrany i zapisany w profilu.');
         } catch (e) {
             console.log('Avatar upload failed', e);

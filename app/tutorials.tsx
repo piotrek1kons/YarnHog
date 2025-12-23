@@ -4,7 +4,6 @@ import { Link } from 'expo-router'
 import React, {useEffect, useState} from 'react'
 import { db } from '../FirebaseConfig';
 import { collection, getDocs } from 'firebase/firestore';
-import { getStorage, ref, getDownloadURL } from 'firebase/storage'; 
     
 import NavPanel from '../components/navPanel';
 import ImageButton from '../components/imageButton';
@@ -15,34 +14,18 @@ const tutorials = () => {
 
   useEffect(() => {
     const fetchButtons = async () => {
-      const storage = getStorage();
-
       const snapshot = await getDocs(collection(db, "tutorials"));
 
-      const data = await Promise.all(
-        snapshot.docs.map(async (doc) => {
-          const item = doc.data();
+      const data = snapshot.docs.map((doc) => {
+        const item = doc.data();
 
-          const symbolPath = item.image?.symbol;
-
-          let symbolUrl = "";
-          if (symbolPath) {
-            try {
-              const imgRef = ref(storage, symbolPath);
-              symbolUrl = await getDownloadURL(imgRef);
-            } catch (err) {
-              console.log("Błąd pobierania symbolu:", err);
-            }
-          }
-
-          return {
-            id: doc.id,
-            label: item.name,        
-            link: `/(tutorial)/${doc.id}`,
-            imageUrl: symbolUrl,     
-          };
-        })
-      );
+        return {
+          id: doc.id,
+          label: item.name,        
+          link: `/(tutorial)/${doc.id}`,
+          imageUrl: item.image || '',     
+        };
+      });
 
       setButtons(data);
     };

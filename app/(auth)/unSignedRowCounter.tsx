@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View, Image, StatusBar, Platform, ScrollView, Pressable } from 'react-native'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 import Counter from '../../components/counter';
 import { count } from 'firebase/firestore';
@@ -8,6 +9,44 @@ const unSignedRowCounter = () => {
   
   const [counters, setCounters] = useState([{ id: 1 }]);
   const [nextId, setNextId] = useState(2);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadCounters();
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading) {
+      saveCounters();
+    }
+  }, [counters, nextId, isLoading]);
+
+  const loadCounters = async () => {
+    try {
+      const savedCounters = await AsyncStorage.getItem('unSignedCounters');
+      const savedNextId = await AsyncStorage.getItem('unSignedNextId');
+      
+      if (savedCounters !== null) {
+        setCounters(JSON.parse(savedCounters));
+      }
+      if (savedNextId !== null) {
+        setNextId(parseInt(savedNextId, 10));
+      }
+    } catch (error) {
+      console.error('Error loading counters:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const saveCounters = async () => {
+    try {
+      await AsyncStorage.setItem('unSignedCounters', JSON.stringify(counters));
+      await AsyncStorage.setItem('unSignedNextId', nextId.toString());
+    } catch (error) {
+      console.error('Error saving counters:', error);
+    }
+  };
 
   const addCounter = () => {
     setCounters(prev => [...prev, { id: nextId }]);
@@ -24,7 +63,7 @@ const unSignedRowCounter = () => {
         <ScrollView style={styles.scroll}>
             {counters.map((counter) => (
                 <View key={counter.id} style={styles.counters}>
-                    <Counter />
+                    <Counter id={counter.id} />
                     {counters.length > 1 && (
                     <Pressable style={styles.deleteButton} onPress={() => removeCounter(counter.id)}>
                         <Text style={styles.deleteButtonText}>X</Text>

@@ -3,7 +3,6 @@ import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { db } from "../../FirebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
-import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { WebView } from "react-native-webview";
 import YouTubeVideo from "../../components/youtubeVideo";
 
@@ -12,10 +11,7 @@ type Tutorial = {
     description: string;
     shortcut: string;
     video: string;
-    image: {
-        photo: string;
-        symbol: string;
-    };
+    image: string;
 };
 
 const getYouTubeId = (url: string) => {
@@ -27,8 +23,6 @@ const getYouTubeId = (url: string) => {
 const TutorialDetails = () => {
     const { id } = useLocalSearchParams();
     const [tutorial, setTutorial] = useState<Tutorial | null>(null);
-    const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-    const [symbolUrl, setSymbolUrl] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchTutorial = async () => {
@@ -40,28 +34,6 @@ const TutorialDetails = () => {
                 if(docSnap.exists()){
                     const data = docSnap.data() as Tutorial;
                     setTutorial(data);
-                    
-                    const storage = getStorage();
-
-                    if(data.image?.photo){
-                        try{
-                            const photoRef = ref(storage, data.image.photo);
-                            const photoDownloadUrl = await getDownloadURL(photoRef);
-                            setPhotoUrl(photoDownloadUrl);
-                        }catch (err){
-                            console.log("Error fetching photo URL:", err);
-                        }
-                    }
-
-                    if(data.image?.symbol){
-                        try{
-                            const symbolRef = ref(storage, data.image.symbol);
-                            const symbolDownloadUrl = await getDownloadURL(symbolRef);
-                            setSymbolUrl(symbolDownloadUrl);
-                        }catch (err){
-                            console.log("Error fetching symbol URL:", err);
-                        }
-                    }
                 }else{
                     console.log("File dosen't exist");
                 }
@@ -82,9 +54,7 @@ const TutorialDetails = () => {
     return (
         <ScrollView contentContainerStyle={styles.container}>
             <Text style={styles.title}>{tutorial.name}</Text>
-            {photoUrl && <Image source={{ uri: photoUrl }} style={styles.image} />}
-            <Text style={styles.label}>Symbol:</Text>
-            {symbolUrl && <Image source={{ uri: symbolUrl }} style={styles.symbol} />}
+            {tutorial.image && <Image source={{ uri: tutorial.image }} style={styles.symbol} />}
             <Text style={styles.label}>Description:</Text>
             <Text>{tutorial.description}</Text>
             <Text style={styles.label}>Shortcut:</Text>

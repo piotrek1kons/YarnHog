@@ -1,22 +1,41 @@
 import { StyleSheet, Pressable, Image, Text, View, StatusBar, Platform, ScrollView } from 'react-native'
+import { Link } from 'expo-router'
 
 import React, {useEffect, useState} from 'react'
-import { db } from '../../FirebaseConfig';
+import { db, auth } from '../FirebaseConfig';
 import { collection, getDocs } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 
-    
-import ImageButton from '../../components/imageButton';
+import NavPanel from '../components/navPanel';
+import ImageButton from '../components/imageButton';
 
-const unSignedProjects = () => {
+const Projects = () => {
     type ProjectButton = { id: string; label: any; link: any; imageUrl: string };
     const [buttons, setButtons] = useState<ProjectButton[]>([]);
+    const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserId(user.uid);
+      } else {
+        setUserId(null);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const fetchButtons = async () => {
       const snapshot = await getDocs(collection(db, "projects"));
 
       const data = snapshot.docs
-        .filter(doc => doc.data().is_public === true)
+        .filter(doc => {
+          const item = doc.data();
+          // Pokaż jeśli: projekt jest publiczny LUB należy do zalogowanego użytkownika
+          return item.is_public === true || item.user_id === userId;
+        })
         .map((doc) => {
           const item = doc.data();
 
@@ -24,7 +43,7 @@ const unSignedProjects = () => {
             id: doc.id,
             label: item.title,        
             link: `/${doc.id}`,
-            imageUrl: item.image || '',     
+            imageUrl: item.image, // Direct base64 or URL
           };
         });
 
@@ -32,7 +51,7 @@ const unSignedProjects = () => {
     };
 
     fetchButtons();
-  }, []);
+  }, [userId]);
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.buttonsContainer}>
@@ -46,12 +65,19 @@ const unSignedProjects = () => {
           />
         ))}
       </ScrollView>
-
+      
+      <View style={styles.addButton}>
+        <Link href="/addProjects">
+          <Text style={styles.addButtonText}>Add Project</Text>
+        </Link>
+      </View>
+      
+      <NavPanel />
     </View>
   )
 }
 
-export default unSignedProjects
+export default Projects
 
 const styles = StyleSheet.create({
     container: {
@@ -84,5 +110,20 @@ const styles = StyleSheet.create({
     button:{
         width: 200,
         marginTop: 20
+    },
+
+    addButton: {
+        backgroundColor: '#FFF8DB',
+        paddingVertical: 12,
+        paddingHorizontal: 30,
+        borderRadius: 15,
+        marginBottom: 100,
+        marginTop: 10
+    },
+
+    addButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333'
     }
 })
