@@ -67,7 +67,9 @@ const Home = () => {
             </View>
             <View style={{ alignItems: "center" }}>
                 <View style={styles.buttons}>
-                    <Image style={{ width: 160, height: 160 }} source={Community}></Image>
+                    <Link href="/community">
+                        <Image style={{ width: 160, height: 160 }} source={Community}></Image>
+                    </Link>
                 </View>    
                 <Text  style={{ marginTop: 8 }}>Community</Text>
             </View>
