@@ -43,11 +43,11 @@ const EditProfile = () => {
                 username: username.trim(),
                 avatarUrl: avatarUrl,
             });
-            Alert.alert('Sukces', 'Profil zaktualizowany.');
+            Alert.alert('Success', 'Profile updated.');
             router.back();
         } catch (e) {
             console.log('Update failed', e);
-            Alert.alert('Błąd', 'Nie udało się zaktualizować profilu.');
+            Alert.alert('Error', 'Could not update profile.');
         } finally {
             setLoading(false);
         }
@@ -55,7 +55,7 @@ const EditProfile = () => {
 
     const uploadImage = async (uri: string): Promise<string> => {
         try {
-            console.log('Konwertowanie avatara na base64...');
+            console.log('Converting avatar to base64...');
             
             const response = await fetch(uri);
             const blob = await response.blob();
@@ -64,14 +64,14 @@ const EditProfile = () => {
                 const reader = new FileReader();
                 reader.onload = () => {
                     const base64 = reader.result as string;
-                    console.log('Avatar skonwertowany, rozmiar:', base64.length);
+                    console.log('Avatar converted, length:', base64.length);
                     resolve(base64);
                 };
                 reader.onerror = reject;
                 reader.readAsDataURL(blob);
             });
         } catch (error) {
-            console.error('Błąd przy konwersji obrazu:', error);
+            console.error('Error converting image:', error);
             throw error;
         }
     };
@@ -81,7 +81,7 @@ const EditProfile = () => {
         try {
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (status !== 'granted') {
-                Alert.alert('Brak uprawnień', 'Zezwól aplikacji na dostęp do galerii.');
+                Alert.alert('No permission', 'Allow the app to access the gallery.');
                 return;
             }
 
@@ -100,17 +100,17 @@ const EditProfile = () => {
             setUploading(true);
 
             const imageBase64 = await uploadImage(asset.uri);
-            console.log('Avatar skonwertowany na base64');
+            console.log('Avatar converted to base64');
 
             setAvatarUrl(imageBase64);
             await updateDoc(doc(db, 'users', user.uid), {
                 avatarUrl: imageBase64,
             });
 
-            Alert.alert('Sukces', 'Avatar wgrany i zapisany w profilu.');
+            Alert.alert('Success', 'Avatar uploaded and saved.');
         } catch (e) {
             console.log('Avatar upload failed', e);
-            Alert.alert('Błąd', 'Nie udało się wgrać avatara.');
+            Alert.alert('Error', 'Could not upload avatar.');
         } finally {
             setUploading(false);
         }
@@ -119,20 +119,20 @@ const EditProfile = () => {
     return (
         <View style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContent}>
-                <Text style={styles.title}>Edytuj profil</Text>
+                <Text style={styles.title}>Edit Profile</Text>
 
                 <View style={styles.section}>
-                    <Text style={styles.label}>Nazwa użytkownika</Text>
+                    <Text style={styles.label}>Username</Text>
                     <TextInput
                         style={styles.input}
                         value={username}
                         onChangeText={setUsername}
-                        placeholder="Twoja nazwa"
+                        placeholder="Your name"
                     />
                 </View>
 
                 <View style={styles.section}>
-                    <Text style={styles.label}>Email (tylko podgląd)</Text>
+                    <Text style={styles.label}>Email (read-only)</Text>
                     <TextInput style={styles.input} value={email} editable={false} />
                 </View>
 
@@ -141,7 +141,7 @@ const EditProfile = () => {
                     {avatarUrl ? (
                         <Image source={{ uri: avatarUrl }} style={styles.avatarPreview} />
                     ) : (
-                        <Text style={styles.help}>Brak avatara. Wybierz z galerii, aby dodać.</Text>
+                        <Text style={styles.help}>No avatar yet. Pick from gallery to add.</Text>
                     )}
                     <Pressable 
                         style={[styles.pickButton, uploading && styles.buttonDisabled]} 
@@ -149,17 +149,17 @@ const EditProfile = () => {
                         disabled={uploading}
                     >
                         <Text style={styles.pickButtonText}>
-                            {uploading ? 'Wgrywanie...' : avatarUrl ? 'Zmień avatar' : 'Wybierz avatar'}
+                            {uploading ? 'Uploading...' : avatarUrl ? 'Change avatar' : 'Choose avatar'}
                         </Text>
                     </Pressable>
                 </View>
 
                 <Pressable style={[styles.button, loading && styles.buttonDisabled]} onPress={handleSave} disabled={loading}>
-                    <Text style={styles.buttonText}>{loading ? 'Zapisywanie...' : 'Zapisz zmiany'}</Text>
+                    <Text style={styles.buttonText}>{loading ? 'Saving...' : 'Save changes'}</Text>
                 </Pressable>
 
                 <Pressable style={[styles.secondaryButton]} onPress={() => router.back()}>
-                    <Text style={styles.secondaryButtonText}>Anuluj</Text>
+                    <Text style={styles.secondaryButtonText}>Cancel</Text>
                 </Pressable>
             </ScrollView>
         </View>
