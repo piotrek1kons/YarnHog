@@ -4,11 +4,31 @@ import React, { useEffect, useState } from "react";
 import { db } from "../../FirebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
 
+type ProjectSection = {
+    name: string;
+    description: string;
+    image?: string;
+};
+
 type Project = {
     title: string;
     image: string;
     materials: string;
-    description: string;
+    sections?: ProjectSection[];
+};
+
+const parseMaterials = (text: string): string[] => {
+    return Array.from(
+        new Set(
+            text
+                .split(/\r?\n/) // split lines
+                .flatMap((line) => line.split(/[;,]+/)) // further split by commas/semicolons
+                .map((item) => item.replace(/^\s*[\u2022•\-–—]\s*/, "")) // remove bullets (• - – —)
+                .map((item) => item.replace(/^\s*\d+[\.\)\-]?\s*/, "")) // remove leading numbering (1. 1) 1-
+                .map((item) => item.trim())
+                .filter(Boolean)
+        )
+    );
 };
 
 const ProjectDetails = () => {
@@ -35,10 +55,11 @@ const ProjectDetails = () => {
         fetchProject();
     }, [id]);
 
-    const materialItems = (project?.materials || "")
-        .split(/[\n,]+/)
-        .map((item) => item.trim())
-        .filter(Boolean);
+    const materialItems = parseMaterials(project?.materials || "");
+
+    const sectionItems = (project?.sections || []).filter(
+        (section) => section.name || section.description || section.image
+    );
 
     if (!project) {
         return (
@@ -73,11 +94,23 @@ const ProjectDetails = () => {
                 </View>
 
                 <View style={styles.section}>
-                    <Text style={styles.label}>Description</Text>
-                    {project.description ? (
-                        <Text style={styles.body}>{project.description}</Text>
+                    <Text style={styles.label}>Project Details</Text>
+                    {sectionItems.length ? (
+                        sectionItems.map((section, index) => (
+                            <View key={`${section.name}-${index}`} style={styles.sectionCard}>
+                                <Text style={styles.sectionTitle}>{section.name || `Section ${index + 1}`}</Text>
+                                {section.image ? (
+                                    <Image source={{ uri: section.image }} style={styles.sectionImage} />
+                                ) : null}
+                                {section.description ? (
+                                    <Text style={styles.body}>{section.description}</Text>
+                                ) : (
+                                    <Text style={styles.bodyMuted}>No description for this section</Text>
+                                )}
+                            </View>
+                        ))
                     ) : (
-                        <Text style={styles.bodyMuted}>No description available</Text>
+                        <Text style={styles.bodyMuted}>No details available</Text>
                     )}
                 </View>
             </View>
@@ -139,6 +172,32 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: "#8A7E70",
     },
+    sectionCard: {
+        marginTop: 10,
+        padding: 12,
+        backgroundColor: "#FFF8DB",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#E7B469",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: "#6B5E4B",
+        marginBottom: 8,
+    },
+    sectionImage: {
+        width: "100%",
+        height: 200,
+        borderRadius: 10,
+        marginBottom: 8,
+        resizeMode: "cover",
+    },
     heroImage: {
         width: "100%",
         height: 220,
@@ -149,7 +208,7 @@ const styles = StyleSheet.create({
     chipRow: {
         flexDirection: "row",
         flexWrap: "wrap",
-        gap: 8,
+        marginTop: 6,
     },
     chip: {
         paddingHorizontal: 12,
@@ -158,6 +217,8 @@ const styles = StyleSheet.create({
         backgroundColor: "#FFF1CC",
         borderWidth: 1,
         borderColor: "#E7B469",
+        marginRight: 8,
+        marginBottom: 8,
     },
     chipText: {
         fontSize: 14,

@@ -3,9 +3,10 @@ import { useRouter } from 'expo-router'
 
 import React, { useState, useEffect } from 'react'
 import { db, auth } from '../FirebaseConfig';
-import { collection, addDoc, query, orderBy, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 import NavPanel from '../components/navPanel';
 
@@ -15,6 +16,7 @@ const Community = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [image, setImage] = useState<string | null>(null);
+  const [imageFormat, setImageFormat] = useState<'jpeg' | 'png' | 'webp'>('jpeg');
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>('Anonymous');
@@ -23,6 +25,10 @@ const Community = () => {
   const [isCommentsModalVisible, setIsCommentsModalVisible] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [commentUsers, setCommentUsers] = useState<Record<string, string>>({});
+  const [publicProjects, setPublicProjects] = useState<{ id: string; title: string }[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedProjectTitle, setSelectedProjectTitle] = useState<string>('');
+  const [showProjectPicker, setShowProjectPicker] = useState<boolean>(false);
 
   const loadCommentUsers = async (postsData: any[]) => {
     const ids = new Set<string>();
@@ -84,6 +90,7 @@ const Community = () => {
 
   useEffect(() => {
     fetchPosts();
+    fetchPublicProjects();
   }, []);
 
   const fetchPosts = async () => {
@@ -103,6 +110,20 @@ const Community = () => {
     }
   };
 
+  const fetchPublicProjects = async () => {
+    try {
+      const q = query(collection(db, 'projects'), where('is_public', '==', true));
+      const snap = await getDocs(q);
+      const items = snap.docs
+        .map(d => ({ id: d.id, title: (d.data() as any).title }))
+        .filter(p => typeof p.title === 'string' && p.title.trim().length > 0);
+      setPublicProjects(items);
+    } catch (err) {
+      console.log('Error fetching public projects:', err);
+      setPublicProjects([]);
+    }
+  };
+
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
@@ -113,8 +134,8 @@ const Community = () => {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
+      allowsEditing: true, // swobodne kadrowanie
+      // aspect: [4, 3], // usunięto stały aspekt
       quality: 0.8,
     });
 
@@ -125,79 +146,80 @@ const Community = () => {
 
   const uploadImage = async (uri: string): Promise<string> => {
     try {
-      console.log('Converting image to base64...');
-      
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const base64 = reader.result as string;
-          console.log('Image converted, length:', base64.length);
-          resolve(base64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
+      const manipResult = await ImageManipulator.manipulateAsync(
+        uri,
+        [],
+        {
+          compress: 0.8,
+          format: 'jpeg', // zapis jako JPEG
+          base64: true,
+        }
+      );
+
+      const dataUrl = `data:image/jpeg;base64,${manipResult.base64}`;
+      return dataUrl;
     } catch (error) {
       console.error('Error converting image:', error);
       throw error;
     }
   };
 
-  const handleAddPost = async () => {
-    if (!title.trim()) {
-      alert('Please enter a post title');
-      return;
-    }
-
-    if (!content.trim()) {
-      alert('Please enter post content');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      console.log('Starting post creation...');
-      
-      let imageBase64 = '';
-      if (image) {
-        imageBase64 = await uploadImage(image);
-        console.log('Image converted to base64');
+    const handleAddPost = async () => {
+      if (!title.trim()) {
+        alert('Please enter a post title');
+        return;
       }
-
-      const postData = {
-        title: title,
-        content: content,
-        image: imageBase64,
-        user_id: userId,
-        user_name: userName,
-        createdAt: new Date(),
-        likes: [],
-        comments: [],
-      };
-
-      console.log('Adding to Firestore...');
-      const result = await addDoc(collection(db, 'posts'), postData);
-      console.log('Post added with ID:', result.id);
-
-      alert('Post added successfully!');
-      resetForm();
-      setIsModalVisible(false);
-      fetchPosts();
-    } catch (error) {
-      console.error('Error adding post:', error);
-      alert('Error: ' + (error as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  
+      if (!content.trim()) {
+        alert('Please enter post content');
+        return;
+      }
+  
+      setLoading(true);
+      try {
+        console.log('Starting post creation...');
+        
+        let imageBase64 = '';
+        if (image) {
+          imageBase64 = await uploadImage(image); // usunięto imageFormat
+        }
+  
+        const postData = {
+          title: title,
+          content: content,
+          image: imageBase64,
+          user_id: userId,
+          user_name: userName,
+          createdAt: new Date(),
+          likes: [],
+          comments: [],
+          project_id: selectedProjectId || '',
+          project_title: selectedProjectTitle || '',
+        };
+  
+        console.log('Adding to Firestore...');
+        const result = await addDoc(collection(db, 'posts'), postData);
+        console.log('Post added with ID:', result.id);
+  
+        alert('Post added successfully!');
+        resetForm();
+        setIsModalVisible(false);
+        fetchPosts();
+      } catch (error) {
+        console.error('Error adding post:', error);
+        alert('Error: ' + (error as Error).message);
+      } finally {
+        setLoading(false);
+      }
+    };
 
   const resetForm = () => {
     setTitle('');
     setContent('');
     setImage(null);
+    setSelectedProjectId(null);
+    setSelectedProjectTitle('');
+    setShowProjectPicker(false);
   };
 
   const handleCancel = () => {
@@ -275,6 +297,11 @@ const Community = () => {
         <View style={styles.postContent}>
           <Text style={styles.postTitle}>{item.title}</Text>
           <Text style={styles.postAuthor}>by {item.user_name}</Text>
+          {item.project_title ? (
+            <View style={styles.projectChipInline}>
+              <Text style={styles.projectChipText}>Based on: {item.project_title}</Text>
+            </View>
+          ) : null}
           <Text style={styles.postText}>{item.content}</Text>
           
           {/* Likes and Comments Section */}
@@ -376,6 +403,55 @@ const Community = () => {
               {image && (
                 <View style={styles.imagePreviewContainer}>
                   <Image source={{ uri: image }} style={styles.imagePreview} />
+                </View>
+              )}
+            </View>
+
+            {/* Project Used (optional) */}
+            <View style={styles.section}>
+              <Text style={styles.label}>Project Used (optional)</Text>
+              {selectedProjectTitle ? (
+                <View style={styles.projectChip}>
+                  <Text style={styles.projectChipText}>Based on: {selectedProjectTitle}</Text>
+                </View>
+              ) : (
+                <Text style={styles.projectMuted}>None selected</Text>
+              )}
+              <Pressable
+                style={[styles.imagePickerButton, styles.projectSelectButton]}
+                onPress={() => setShowProjectPicker((p) => !p)}
+              >
+                <Text style={styles.imagePickerButtonText}>
+                  {showProjectPicker ? 'Hide Projects' : 'Choose Project'}
+                </Text>
+              </Pressable>
+
+              {showProjectPicker && (
+                <View style={styles.projectListContainer}>
+                  <TouchableOpacity
+                    style={styles.projectItem}
+                    onPress={() => {
+                      setSelectedProjectId(null);
+                      setSelectedProjectTitle('');
+                      setShowProjectPicker(false);
+                    }}
+                  >
+                    <Text style={styles.projectItemText}>None (no project)</Text>
+                  </TouchableOpacity>
+
+                  {publicProjects.map((p) => (
+                    <TouchableOpacity
+                      key={p.id}
+                      style={styles.projectItem}
+                      onPress={() => {
+                        setSelectedProjectId(p.id);
+                        setSelectedProjectTitle(p.title);
+                        setShowProjectPicker(false);
+                      }}
+                    >
+                      <Text style={styles.projectItemText}>{p.title}</Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
               )}
             </View>
@@ -670,6 +746,81 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#1C1C1C',
+  },
+  formatRow: {
+    marginTop: 12,
+  },
+  formatChips: {
+    flexDirection: 'row',
+    marginTop: 8,
+  },
+  formatChip: {
+    backgroundColor: '#F0E5D8',
+    borderWidth: 1,
+    borderColor: '#E7B469',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 8,
+  },
+  formatChipSelected: {
+    backgroundColor: '#F9E7C6',
+  },
+  formatChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6B5E4B',
+  },
+  projectSelectButton: {
+    marginTop: 8,
+  },
+  projectListContainer: {
+    marginTop: 10,
+    backgroundColor: '#FFF8DB',
+    borderWidth: 1,
+    borderColor: '#E7B469',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  projectItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0E5D8',
+  },
+  projectItemText: {
+    fontSize: 14,
+    color: '#1C1C1C',
+  },
+  projectChip: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#F9E7C6',
+    borderWidth: 1,
+    borderColor: '#E7B469',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 8,
+  },
+  projectChipInline: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#F9E7C6',
+    borderWidth: 1,
+    borderColor: '#E7B469',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 8,
+  },
+  projectChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6B5E4B',
+  },
+  projectMuted: {
+    fontSize: 12,
+    color: '#8A7E70',
+    marginBottom: 8,
   },
   commentsHeader: {
     flexDirection: 'row',
