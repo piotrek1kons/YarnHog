@@ -5,6 +5,7 @@ import { db, auth } from '../FirebaseConfig';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 import NavPanel from '../components/navPanel';
 import ImageButton from '../components/imageButton';
@@ -17,11 +18,14 @@ const Projects = () => {
     // Modal state
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
     const [image, setImage] = useState<string | null>(null);
+    const [imageFormat, setImageFormat] = useState<'jpeg' | 'png' | 'webp'>('jpeg');
     const [isPublic, setIsPublic] = useState(true);
     const [materialsNeeded, setMaterialsNeeded] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [sections, setSections] = useState([
+      { id: 'section-1', name: '', description: '', image: null as string | null },
+    ]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -62,12 +66,12 @@ const Projects = () => {
     fetchButtons();
   }, [userId]);
 
-  const pickImage = async () => {
+  const selectImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (status !== 'granted') {
       alert('Sorry, we need camera roll permissions to upload images!');
-      return;
+      return null;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -78,28 +82,49 @@ const Projects = () => {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setImage(result.assets[0].uri);
+      return result.assets[0].uri;
+    }
+
+    return null;
+  };
+
+  const pickImage = async () => {
+    const uri = await selectImage();
+    if (uri) {
+      setImage(uri);
     }
   };
 
-  const uploadImage = async (uri: string): Promise<string> => {
+  const pickSectionImage = async (sectionId: string) => {
+    const uri = await selectImage();
+    if (uri) {
+      setSections((prev) =>
+        prev.map((section) =>
+          section.id === sectionId ? { ...section, image: uri } : section
+        )
+      );
+    }
+  };
+
+  const uploadImage = async (uri: string, format: 'jpeg' | 'png' | 'webp'): Promise<string> => {
     try {
-      console.log('Converting image to base64...');
-      
-      // Convert URI to blob then to base64
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const base64 = reader.result as string;
-          console.log('Image converted, length:', base64.length);
-          resolve(base64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
+      console.log('Converting image to base64 with format:', format);
+
+      const manipResult = await ImageManipulator.manipulateAsync(
+        uri,
+        [],
+        {
+          compress: 0.8,
+          format: Platform.OS === 'android' ? format : (format === 'webp' ? 'jpeg' : format),
+          base64: true,
+        }
+      );
+
+      const chosenFormat = Platform.OS === 'android' ? format : (format === 'webp' ? 'jpeg' : format);
+      const mime = chosenFormat === 'jpeg' ? 'image/jpeg' : chosenFormat === 'png' ? 'image/png' : 'image/webp';
+      const dataUrl = `data:${mime};base64,${manipResult.base64}`;
+      console.log('Image converted, length:', dataUrl.length);
+      return dataUrl;
     } catch (error) {
       console.error('Error converting image:', error);
       throw error;
@@ -117,20 +142,42 @@ const Projects = () => {
       return;
     }
 
+    if (!sections.length) {
+      alert('Please add at least one section');
+      return;
+    }
+
+    const hasInvalidSection = sections.some(
+      (section) => !section.name.trim() || !section.description.trim()
+    );
+
+    if (hasInvalidSection) {
+      alert('Each section needs a name and description');
+      return;
+    }
+
     setSubmitting(true);
     try {
       console.log('Starting project creation...');
       
-      const imageBase64 = await uploadImage(image);
+      const imageBase64 = await uploadImage(image, imageFormat);
       console.log('Image converted to base64');
+
+      const preparedSections = await Promise.all(
+        sections.map(async (section) => ({
+          name: section.name.trim(),
+          description: section.description.trim(),
+          image: section.image ? await uploadImage(section.image, imageFormat) : '',
+        }))
+      );
 
       const projectData = {
         title: title,
-        description: description,
         image: imageBase64,
         user_id: userId,
         is_public: isPublic,
         materials: materialsNeeded,
+        sections: preparedSections,
       };
 
       console.log('Adding to Firestore...');
@@ -168,10 +215,29 @@ const Projects = () => {
 
   const resetForm = () => {
     setTitle('');
-    setDescription('');
     setImage(null);
     setIsPublic(true);
     setMaterialsNeeded('');
+    setSections([{ id: 'section-1', name: '', description: '', image: null }]);
+  };
+
+  const updateSection = (id: string, key: 'name' | 'description', value: string) => {
+    setSections((prev) =>
+      prev.map((section) =>
+        section.id === id ? { ...section, [key]: value } : section
+      )
+    );
+  };
+
+  const addSection = () => {
+    setSections((prev) => [
+      ...prev,
+      { id: `section-${Date.now()}`, name: '', description: '', image: null },
+    ]);
+  };
+
+  const removeSection = (id: string) => {
+    setSections((prev) => (prev.length > 1 ? prev.filter((section) => section.id !== id) : prev));
   };
 
   const handleCancel = () => {
@@ -217,18 +283,53 @@ const Projects = () => {
               />
             </View>
 
-            {/* Description */}
+            {/* Sections */}
             <View style={styles.section}>
-              <Text style={styles.label}>Description</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Project description..."
-                value={description}
-                onChangeText={setDescription}
-                multiline
-                numberOfLines={4}
-                placeholderTextColor="#B0A898"
-              />
+              <Text style={styles.label}>Sections</Text>
+              {sections.map((section, index) => (
+                <View key={section.id} style={styles.sectionCard}>
+                  <View style={styles.sectionHeaderRow}>
+                    <Text style={styles.sectionLabel}>Section {index + 1}</Text>
+                    {sections.length > 1 && (
+                      <Pressable onPress={() => removeSection(section.id)}>
+                        <Text style={styles.removeLink}>Remove</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Section name"
+                    value={section.name}
+                    onChangeText={(text) => updateSection(section.id, 'name', text)}
+                    placeholderTextColor="#B0A898"
+                  />
+                  <TextInput
+                    style={[styles.input, styles.textArea, styles.sectionDescription]}
+                    placeholder="Section description..."
+                    value={section.description}
+                    onChangeText={(text) => updateSection(section.id, 'description', text)}
+                    multiline
+                    numberOfLines={4}
+                    placeholderTextColor="#B0A898"
+                  />
+                  <Pressable
+                    style={[styles.imagePickerButton, styles.sectionImageButton]}
+                    onPress={() => pickSectionImage(section.id)}
+                  >
+                    <Text style={styles.imagePickerButtonText}>
+                      {section.image ? 'Change section image' : 'Add section image'}
+                    </Text>
+                  </Pressable>
+                  {section.image && (
+                    <View style={styles.imagePreviewContainer}>
+                      <Image source={{ uri: section.image }} style={styles.sectionImagePreview} />
+                    </View>
+                  )}
+                </View>
+              ))}
+              <Pressable style={styles.addSectionButton} onPress={addSection}>
+                <Text style={styles.addSectionButtonText}>+ Add Section</Text>
+              </Pressable>
             </View>
 
             {/* Image Picker */}
@@ -244,6 +345,31 @@ const Projects = () => {
                   <Image source={{ uri: image }} style={styles.imagePreview} />
                 </View>
               )}
+              <View style={styles.formatRow}>
+                <Text style={styles.label}>Image Format</Text>
+                <View style={styles.formatChips}>
+                  <Pressable
+                    style={[styles.formatChip, imageFormat === 'jpeg' && styles.formatChipSelected]}
+                    onPress={() => setImageFormat('jpeg')}
+                  >
+                    <Text style={styles.formatChipText}>JPEG</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.formatChip, imageFormat === 'png' && styles.formatChipSelected]}
+                    onPress={() => setImageFormat('png')}
+                  >
+                    <Text style={styles.formatChipText}>PNG</Text>
+                  </Pressable>
+                  {Platform.OS === 'android' && (
+                    <Pressable
+                      style={[styles.formatChip, imageFormat === 'webp' && styles.formatChipSelected]}
+                      onPress={() => setImageFormat('webp')}
+                    >
+                      <Text style={styles.formatChipText}>WEBP</Text>
+                    </Pressable>
+                  )}
+                </View>
+              </View>
             </View>
 
             {/* Public Toggle */}
@@ -385,12 +511,47 @@ const styles = StyleSheet.create({
       textAlignVertical: 'top',
       paddingTop: 12,
     },
+    sectionDescription: {
+      marginTop: 10,
+    },
+    sectionCard: {
+      backgroundColor: '#FFF8DB',
+      borderWidth: 1,
+      borderColor: '#E7B469',
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 12,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    sectionLabel: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: '#6B5E4B',
+    },
+    removeLink: {
+      fontSize: 13,
+      color: '#C0392B',
+      fontWeight: '600',
+    },
     imagePickerButton: {
       backgroundColor: '#E7B469',
       paddingVertical: 12,
       paddingHorizontal: 20,
       borderRadius: 12,
       alignItems: 'center',
+    },
+    sectionImageButton: {
+      marginTop: 10,
     },
     imagePickerButtonText: {
       fontSize: 16,
@@ -406,6 +567,26 @@ const styles = StyleSheet.create({
       height: 200,
       borderRadius: 12,
       resizeMode: 'cover',
+    },
+    sectionImagePreview: {
+      width: '100%',
+      height: 180,
+      borderRadius: 12,
+      resizeMode: 'cover',
+    },
+    addSectionButton: {
+      borderWidth: 1,
+      borderColor: '#E7B469',
+      borderRadius: 12,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      alignItems: 'center',
+      backgroundColor: '#F9E7C6',
+    },
+    addSectionButtonText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: '#6B5E4B',
     },
     toggleContainer: {
       flexDirection: 'row',
@@ -450,6 +631,30 @@ const styles = StyleSheet.create({
       fontSize: 16,
       fontWeight: '600',
       color: '#1C1C1C',
+    },
+    formatRow: {
+      marginTop: 12,
+    },
+    formatChips: {
+      flexDirection: 'row',
+      marginTop: 8,
+    },
+    formatChip: {
+      backgroundColor: '#F0E5D8',
+      borderWidth: 1,
+      borderColor: '#E7B469',
+      borderRadius: 16,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      marginRight: 8,
+    },
+    formatChipSelected: {
+      backgroundColor: '#F9E7C6',
+    },
+    formatChipText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: '#6B5E4B',
     },
     fab: {
       position: 'absolute',

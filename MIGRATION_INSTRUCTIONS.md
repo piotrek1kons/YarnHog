@@ -23,6 +23,15 @@ npm install firebase-admin node-fetch
 node migrate-images.js
 ```
 
+### Migracja sekcji projektów (usunięcie `description`)
+
+Skrypt tworzy sekcję `Overview` z dotychczasowego pola `description` (jeśli istnieje),
+usuwa pole `description` i zapewnia, że każdy projekt ma co najmniej jedną sekcję.
+
+```bash
+node migrate-projects-sections.js
+```
+
 ## Co robi skrypt?
 
 1. **Tutorials**: 
@@ -54,3 +63,8 @@ node migrate-images.js
 - Firestore ma limit 1MB na dokument
 - Jeśli zdjęcia są większe, będzie błąd
 - Skrypt pomija już zmigrowane dokumenty (sprawdza czy `image` zaczyna się od `data:`)
+
+## Dodatkowo — migracja sekcji projektów
+
+- Po uruchomieniu `migrate-projects-sections.js` wszystkie projekty będą miały pole `sections` i brak pola `description`.
+- Nowe dodawanie projektów w aplikacji zapisuje wyłącznie `sections`.
