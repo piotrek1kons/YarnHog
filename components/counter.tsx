@@ -1,6 +1,6 @@
 import { serverTimestamp } from "firebase/firestore";
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Pressable} from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 import YoutubePlayer from "react-native-youtube-iframe";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -62,30 +62,47 @@ const Counter = ({ id }: { id?: number }) => {
 export default Counter;
 
 const styles = StyleSheet.create({
-    counter:{
+    counter: {
       flexDirection: 'row',
-      flexWrap: "wrap",
       alignItems: 'center',
-      justifyContent: "center",
-      backgroundColor: "#F9E7C6",
-      padding: 10,
-      borderRadius: 40,
-      gap: 60,
+      justifyContent: 'center',
+      backgroundColor: '#FFF8DB',
+      paddingVertical: 14,
+      paddingHorizontal: 22,
+      borderRadius: 999,
+      gap: 40,
       marginBottom: 20,
+      borderWidth: 2,
+      borderColor: '#E7B469',
+      shadowColor: 'rgba(0,0,0,0.12)',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 1,
+      shadowRadius: 18,
+      elevation: 10,
     },
 
     sizing: {
-      fontSize: 56,
-      textAlign: "center",
+      fontSize: 52,
+      textAlign: 'center',
       lineHeight: 60,
+      color: '#6B5E4B',
+      fontWeight: '700',
+      minWidth: 80,
     },
 
-    button:{
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      backgroundColor: '#FFF8DB',
+    button: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      backgroundColor: '#F9E7C6',
       justifyContent: 'center',
-      alignItems: 'center', 
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: '#E7B469',
+      shadowColor: 'rgba(0,0,0,0.08)',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 1,
+      shadowRadius: 10,
+      elevation: 6,
     }
 })
