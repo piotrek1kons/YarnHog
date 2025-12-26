@@ -22,6 +22,38 @@ const Community = () => {
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
   const [isCommentsModalVisible, setIsCommentsModalVisible] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const [commentUsers, setCommentUsers] = useState<Record<string, string>>({});
+
+  const loadCommentUsers = async (postsData: any[]) => {
+    const ids = new Set<string>();
+    postsData.forEach((post) => {
+      post.comments?.forEach((c: any) => {
+        if (c?.user_id) ids.add(c.user_id);
+      });
+    });
+
+    if (!ids.size) {
+      setCommentUsers({});
+      return;
+    }
+
+    const entries = await Promise.all(
+      Array.from(ids).map(async (uid) => {
+        try {
+          const snap = await getDoc(doc(db, 'users', uid));
+          if (snap.exists()) {
+            const data = snap.data();
+            return [uid, data.username || 'Anonymous'] as [string, string];
+          }
+        } catch (err) {
+          console.log('Error fetching username for comment user:', err);
+        }
+        return [uid, 'Anonymous'] as [string, string];
+      })
+    );
+
+    setCommentUsers(Object.fromEntries(entries));
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -64,6 +96,7 @@ const Community = () => {
         ...doc.data()
       }));
       
+      await loadCommentUsers(postsData);
       setPosts(postsData);
     } catch (err) {
       console.log('Error fetching posts:', err);
@@ -74,7 +107,7 @@ const Community = () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (status !== 'granted') {
-      alert('Potrzebujesz uprawnień do galerii!');
+      alert('You need gallery permissions!');
       return;
     }
 
@@ -115,12 +148,12 @@ const Community = () => {
 
   const handleAddPost = async () => {
     if (!title.trim()) {
-      alert('Proszę wpisz tytuł postu');
+      alert('Please enter a post title');
       return;
     }
 
     if (!content.trim()) {
-      alert('Proszę wpisz treść postu');
+      alert('Please enter post content');
       return;
     }
 
@@ -149,13 +182,13 @@ const Community = () => {
       const result = await addDoc(collection(db, 'posts'), postData);
       console.log('Post added with ID:', result.id);
 
-      alert('Post dodany pomyślnie!');
+      alert('Post added successfully!');
       resetForm();
       setIsModalVisible(false);
       fetchPosts();
     } catch (error) {
       console.error('Error adding post:', error);
-      alert('Błąd: ' + (error as Error).message);
+      alert('Error: ' + (error as Error).message);
     } finally {
       setLoading(false);
     }
@@ -202,7 +235,6 @@ const Community = () => {
       const postRef = doc(db, 'posts', selectedPost.id);
       const comment = {
         user_id: userId,
-        user_name: userName,
         text: commentText,
         createdAt: new Date(),
       };
@@ -221,7 +253,7 @@ const Community = () => {
       }
     } catch (err) {
       console.log('Error adding comment:', err);
-      alert('Nie udało się dodać komentarza');
+      alert('Failed to add comment');
     }
   };
 
@@ -282,7 +314,7 @@ const Community = () => {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Brak postów. Bądź pierwszy!</Text>
+            <Text style={styles.emptyText}>No posts yet. Be the first!</Text>
           </View>
         }
         scrollEnabled={true}
@@ -305,14 +337,14 @@ const Community = () => {
       >
         <View style={styles.modalContainer}>
           <ScrollView contentContainerStyle={styles.scrollContent}>
-            <Text style={styles.modalTitle}>Dodaj Post</Text>
+            <Text style={styles.modalTitle}>Add Post</Text>
 
             {/* Title */}
             <View style={styles.section}>
-              <Text style={styles.label}>Tytuł Postu *</Text>
+              <Text style={styles.label}>Post Title *</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Wpisz tytuł postu"
+                placeholder="Enter post title"
                 value={title}
                 onChangeText={setTitle}
                 placeholderTextColor="#B0A898"
@@ -321,10 +353,10 @@ const Community = () => {
 
             {/* Content */}
             <View style={styles.section}>
-              <Text style={styles.label}>Treść Postu *</Text>
+              <Text style={styles.label}>Post Content *</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
-                placeholder="Wpisz treść postu..."
+                placeholder="Enter post content..."
                 value={content}
                 onChangeText={setContent}
                 multiline
@@ -335,10 +367,10 @@ const Community = () => {
 
             {/* Image Picker */}
             <View style={styles.section}>
-              <Text style={styles.label}>Zdjęcie (opcjonalne)</Text>
+              <Text style={styles.label}>Photo (optional)</Text>
               <Pressable style={styles.imagePickerButton} onPress={pickImage}>
                 <Text style={styles.imagePickerButtonText}>
-                  {image ? 'Zmień Zdjęcie' : 'Wybierz Zdjęcie'}
+                  {image ? 'Change Photo' : 'Choose Photo'}
                 </Text>
               </Pressable>
               {image && (
@@ -355,14 +387,14 @@ const Community = () => {
                 onPress={handleCancel}
                 disabled={loading}
               >
-                <Text style={styles.cancelButtonText}>Anuluj</Text>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
               </Pressable>
               <Pressable
                 style={[styles.button, styles.addButton, loading && styles.buttonDisabled]}
                 onPress={handleAddPost}
                 disabled={loading}
               >
-                <Text style={styles.addButtonText}>{loading ? 'Dodawanie...' : 'Opublikuj Post'}</Text>
+                <Text style={styles.addButtonText}>{loading ? 'Publishing...' : 'Publish Post'}</Text>
               </Pressable>
             </View>
           </ScrollView>
@@ -378,7 +410,7 @@ const Community = () => {
       >
         <View style={styles.modalContainer}>
           <View style={styles.commentsHeader}>
-            <Text style={styles.modalTitle}>Komentarze</Text>
+            <Text style={styles.modalTitle}>Comments</Text>
             <Pressable onPress={() => setIsCommentsModalVisible(false)}>
               <Text style={styles.closeButton}>✕</Text>
             </Pressable>
@@ -389,13 +421,13 @@ const Community = () => {
             keyExtractor={(item, index) => index.toString()}
             renderItem={({ item }) => (
               <View style={styles.commentCard}>
-                <Text style={styles.commentAuthor}>{item.user_name}</Text>
+                <Text style={styles.commentAuthor}>{commentUsers[item.user_id] || item.user_name || 'Anonymous'}</Text>
                 <Text style={styles.commentText}>{item.text}</Text>
               </View>
             )}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>Brak komentarzy. Dodaj pierwszy!</Text>
+                <Text style={styles.emptyText}>No comments yet. Add the first!</Text>
               </View>
             }
             contentContainerStyle={styles.commentsListContent}
@@ -404,7 +436,7 @@ const Community = () => {
           <View style={styles.addCommentContainer}>
             <TextInput
               style={styles.commentInput}
-              placeholder="Dodaj komentarz..."
+              placeholder="Add a comment..."
               value={commentText}
               onChangeText={setCommentText}
               placeholderTextColor="#B0A898"
@@ -415,7 +447,7 @@ const Community = () => {
               onPress={handleAddComment}
               disabled={!commentText.trim()}
             >
-              <Text style={styles.sendButtonText}>Wyślij</Text>
+              <Text style={styles.sendButtonText}>Send</Text>
             </Pressable>
           </View>
         </View>
