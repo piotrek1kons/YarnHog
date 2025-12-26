@@ -12,8 +12,8 @@ function AuthLayout() {
       headerShadowVisible: false,
     }
     }>
-        <Stack.Screen name='login' options={{title: ''}}/>
-        <Stack.Screen name='register' options={{title: ''}}/>
+        <Stack.Screen name='login' options={{headerShown: false}}/>
+        <Stack.Screen name='register' options={{headerShown: false}}/>
         <Stack.Screen name='unSignedProjects' options={{title: 'Projects'}}/>
         <Stack.Screen name='unSignedTutorials' options={{title: 'Tutorials'}}/>
         <Stack.Screen name='unSignedRowCounter' options={{title: 'Row Counter'}}/>
