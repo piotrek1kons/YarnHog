@@ -19,7 +19,6 @@ const Projects = () => {
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [title, setTitle] = useState('');
     const [image, setImage] = useState<string | null>(null);
-    const [imageFormat, setImageFormat] = useState<'jpeg' | 'png' | 'webp'>('jpeg');
     const [isPublic, setIsPublic] = useState(true);
     const [materialsNeeded, setMaterialsNeeded] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -70,22 +69,19 @@ const Projects = () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (status !== 'granted') {
-      alert('Sorry, we need camera roll permissions to upload images!');
-      return null;
+      alert('You need gallery permissions!');
+      return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [4, 3],
       quality: 0.8,
     });
 
     if (!result.canceled && result.assets[0]) {
-      return result.assets[0].uri;
+      setImage(result.assets[0].uri);
     }
-
-    return null;
   };
 
   const pickImage = async () => {
@@ -96,34 +92,41 @@ const Projects = () => {
   };
 
   const pickSectionImage = async (sectionId: string) => {
-    const uri = await selectImage();
-    if (uri) {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (status !== 'granted') {
+      alert('You need gallery permissions!');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
       setSections((prev) =>
         prev.map((section) =>
-          section.id === sectionId ? { ...section, image: uri } : section
+          section.id === sectionId ? { ...section, image: result.assets[0].uri } : section
         )
       );
     }
   };
 
-  const uploadImage = async (uri: string, format: 'jpeg' | 'png' | 'webp'): Promise<string> => {
+  const uploadImage = async (uri: string): Promise<string> => {
     try {
-      console.log('Converting image to base64 with format:', format);
-
       const manipResult = await ImageManipulator.manipulateAsync(
         uri,
         [],
         {
           compress: 0.8,
-          format: Platform.OS === 'android' ? format : (format === 'webp' ? 'jpeg' : format),
+          format: 'jpeg',
           base64: true,
         }
       );
 
-      const chosenFormat = Platform.OS === 'android' ? format : (format === 'webp' ? 'jpeg' : format);
-      const mime = chosenFormat === 'jpeg' ? 'image/jpeg' : chosenFormat === 'png' ? 'image/png' : 'image/webp';
-      const dataUrl = `data:${mime};base64,${manipResult.base64}`;
-      console.log('Image converted, length:', dataUrl.length);
+      const dataUrl = `data:image/jpeg;base64,${manipResult.base64}`;
       return dataUrl;
     } catch (error) {
       console.error('Error converting image:', error);
@@ -160,14 +163,14 @@ const Projects = () => {
     try {
       console.log('Starting project creation...');
       
-      const imageBase64 = await uploadImage(image, imageFormat);
+      const imageBase64 = await uploadImage(image);
       console.log('Image converted to base64');
 
       const preparedSections = await Promise.all(
         sections.map(async (section) => ({
           name: section.name.trim(),
           description: section.description.trim(),
-          image: section.image ? await uploadImage(section.image, imageFormat) : '',
+          image: section.image ? await uploadImage(section.image) : '',
         }))
       );
 
@@ -345,31 +348,6 @@ const Projects = () => {
                   <Image source={{ uri: image }} style={styles.imagePreview} />
                 </View>
               )}
-              <View style={styles.formatRow}>
-                <Text style={styles.label}>Image Format</Text>
-                <View style={styles.formatChips}>
-                  <Pressable
-                    style={[styles.formatChip, imageFormat === 'jpeg' && styles.formatChipSelected]}
-                    onPress={() => setImageFormat('jpeg')}
-                  >
-                    <Text style={styles.formatChipText}>JPEG</Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.formatChip, imageFormat === 'png' && styles.formatChipSelected]}
-                    onPress={() => setImageFormat('png')}
-                  >
-                    <Text style={styles.formatChipText}>PNG</Text>
-                  </Pressable>
-                  {Platform.OS === 'android' && (
-                    <Pressable
-                      style={[styles.formatChip, imageFormat === 'webp' && styles.formatChipSelected]}
-                      onPress={() => setImageFormat('webp')}
-                    >
-                      <Text style={styles.formatChipText}>WEBP</Text>
-                    </Pressable>
-                  )}
-                </View>
-              </View>
             </View>
 
             {/* Public Toggle */}
@@ -410,15 +388,20 @@ const Projects = () => {
       </Modal>
 
       <ScrollView contentContainerStyle={styles.buttonsContainer}>
-        {buttons.map((btn: any) => (
-          <ImageButton
-            key={btn.id}
-            imageSource={{ uri: btn.imageUrl }}
-            label={btn.label}
-            link={btn.link}
-          
-          />
-        ))}
+        {buttons.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No projects yet. Create your first one!</Text>
+          </View>
+        ) : (
+          buttons.map((btn: any) => (
+            <ImageButton
+              key={btn.id}
+              imageSource={{ uri: btn.imageUrl }}
+              label={btn.label}
+              link={btn.link}
+            />
+          ))
+        )}
       </ScrollView>
       
       <Pressable 
@@ -438,10 +421,29 @@ export default Projects
 const styles = StyleSheet.create({
     container: {
             flex: 1,
-            alignItems: 'center',
             backgroundColor: '#FFFBF5', 
             paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
         },
+    pageTitle: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: '#6B5E4B',
+      marginBottom: 24,
+      marginTop: 16,
+      textAlign: 'center',
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+    },
+    emptyText: {
+      fontSize: 16,
+      color: '#6B5E4B',
+      textAlign: 'center',
+      fontStyle: 'italic',
+    },
     header: {
         fontSize: 64,
         fontFamily: 'Merriweather',
@@ -453,7 +455,9 @@ const styles = StyleSheet.create({
         flexWrap: "wrap",
         justifyContent: "center",
         gap: 20,
-        paddingBottom: 100
+        paddingHorizontal: 16,
+        paddingVertical: 20,
+        paddingBottom: 120
     },
 
     buttons: {
@@ -477,9 +481,9 @@ const styles = StyleSheet.create({
       borderBottomColor: '#E7B469',
     },
     modalTitle: {
-      fontSize: 18,
-      fontWeight: '600',
-      color: '#1C1C1C',
+      fontSize: 24,
+      fontWeight: '700',
+      color: '#6B5E4B',
       textAlign: 'center',
     },
     modalContent: {
@@ -549,6 +553,11 @@ const styles = StyleSheet.create({
       paddingHorizontal: 20,
       borderRadius: 12,
       alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
     },
     sectionImageButton: {
       marginTop: 10,
@@ -631,30 +640,6 @@ const styles = StyleSheet.create({
       fontSize: 16,
       fontWeight: '600',
       color: '#1C1C1C',
-    },
-    formatRow: {
-      marginTop: 12,
-    },
-    formatChips: {
-      flexDirection: 'row',
-      marginTop: 8,
-    },
-    formatChip: {
-      backgroundColor: '#F0E5D8',
-      borderWidth: 1,
-      borderColor: '#E7B469',
-      borderRadius: 16,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      marginRight: 8,
-    },
-    formatChipSelected: {
-      backgroundColor: '#F9E7C6',
-    },
-    formatChipText: {
-      fontSize: 12,
-      fontWeight: '700',
-      color: '#6B5E4B',
     },
     fab: {
       position: 'absolute',

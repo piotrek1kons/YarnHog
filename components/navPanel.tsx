@@ -90,7 +90,7 @@ const NavPanel = () => {
                         <Text >Tutorials</Text>
                     </View>
                     <View style={styles.navButton}>
-                        <Pressable style={styles.navImage}><Link href="/"><Image source={Projects} /></Link></Pressable>
+                        <Pressable style={styles.navImage}><Link href="/projects"><Image source={Projects} /></Link></Pressable>
                         <Text >Projects</Text>
                     </View>
                     <View style={styles.navButton}>
@@ -98,7 +98,7 @@ const NavPanel = () => {
                         <Text >Profile</Text>
                     </View>
                     <View style={styles.navButton}>
-                        <Pressable style={styles.navImage}><Link href="/"><Image source={Community} /></Link></Pressable>
+                        <Pressable style={styles.navImage}><Link href="/community"><Image source={Community} /></Link></Pressable>
                         <Text >Community</Text>
                     </View>
                     <View style={styles.navButton}>

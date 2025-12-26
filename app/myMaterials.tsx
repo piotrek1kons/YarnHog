@@ -1,10 +1,12 @@
-import { StyleSheet, Pressable, Image, Text, View, StatusBar, Platform, ScrollView, TextInput, Modal } from 'react-native'
+import { StyleSheet, Pressable, Image, Text, View, StatusBar, Platform, ScrollView, TextInput, Modal, Alert } from 'react-native'
 import React, {useEffect, useState} from 'react'
 import { db, auth } from '../FirebaseConfig';
-import { collection, getDocs, query, where, addDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import NavPanel from '../components/navPanel';
-import Materials from '../assets/img/materials.png';
+import Yarn from '../assets/img/materials.png';
+import Hook from '../assets/img/projects.png';
+import Other from '../assets/img/other.png';
 
 const myMaterials = () => {     
   const [activeTab, setActiveTab] = useState<'yarn' | 'hook' | 'other'>('yarn');
@@ -24,6 +26,8 @@ const myMaterials = () => {
   const [category, setCategory] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -84,17 +88,65 @@ const myMaterials = () => {
         materialData.quantity = quantity;
       }
       materialData.notes = notes;
-      await addDoc(collection(db, 'materials'), materialData);
-      alert('Material added successfully!');
+
+      if (isEditMode && editingId) {
+        await updateDoc(doc(db, 'materials', editingId), materialData);
+        alert('Material updated successfully!');
+      } else {
+        await addDoc(collection(db, 'materials'), materialData);
+        alert('Material added successfully!');
+      }
+      
       resetForm();
       setIsModalVisible(false);
       fetchMaterials(userId!);
     } catch (error) {
-      console.error('Error adding material:', error);
-      alert('Error adding material');
+      console.error('Error saving material:', error);
+      alert('Error saving material');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEditMaterial = (material: any) => {
+    setIsEditMode(true);
+    setEditingId(material.id);
+    setMaterialType(material.type);
+    setName(material.name);
+    setQuantity(material.quantity || '');
+    setColor(material.color || '');
+    setWeight(material.weight || '');
+    setLength(material.length || '');
+    setThickness(material.size || material.thickness || '');
+    setComposition(material.composition || '');
+    setMaterial(material.material || '');
+    setCategory(material.category || '');
+    setNotes(material.notes || '');
+    setIsModalVisible(true);
+  };
+
+  const handleDeleteMaterial = (materialId: string) => {
+    Alert.alert(
+      'Delete Material',
+      'Are you sure you want to delete this material?',
+      [
+        { text: 'Cancel', onPress: () => {} },
+        {
+          text: 'Delete',
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, 'materials', materialId));
+              alert('Material deleted successfully!');
+              fetchMaterials(userId!);
+            } catch (error) {
+              console.error('Error deleting material:', error);
+              alert('Error deleting material');
+            }
+          },
+          style: 'destructive',
+        },
+      ]
+    );
   };
 
   const resetForm = () => {
@@ -109,6 +161,8 @@ const myMaterials = () => {
     setCategory('');
     setNotes('');
     setMaterialType('yarn');
+    setIsEditMode(false);
+    setEditingId(null);
   };
 
   const handleCancel = () => {
@@ -123,20 +177,20 @@ const myMaterials = () => {
       <Modal visible={isModalVisible} animationType="slide" onRequestClose={handleCancel}>
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Add Material</Text>
+            <Text style={styles.modalTitle}>{isEditMode ? 'Edit Material' : 'Add Material'}</Text>
           </View>
           
           <ScrollView contentContainerStyle={styles.modalContent}>
             <View style={styles.section}>
               <Text style={styles.label}>Material Type</Text>
               <View style={styles.typeContainer}>
-                <Pressable onPress={() => setMaterialType('yarn')} style={[styles.typeButton, materialType === 'yarn' && styles.typeButtonActive]}>
+                <Pressable onPress={() => setMaterialType('yarn')} style={[styles.typeButton, materialType === 'yarn' && styles.typeButtonActive]} disabled={isEditMode}>
                   <Text style={[styles.typeButtonText, materialType === 'yarn' && styles.typeButtonTextActive]}>Yarn</Text>
                 </Pressable>
-                <Pressable onPress={() => setMaterialType('hook')} style={[styles.typeButton, materialType === 'hook' && styles.typeButtonActive]}>
+                <Pressable onPress={() => setMaterialType('hook')} style={[styles.typeButton, materialType === 'hook' && styles.typeButtonActive]} disabled={isEditMode}>
                   <Text style={[styles.typeButtonText, materialType === 'hook' && styles.typeButtonTextActive]}>Hook</Text>
                 </Pressable>
-                <Pressable onPress={() => setMaterialType('other')} style={[styles.typeButton, materialType === 'other' && styles.typeButtonActive]}>
+                <Pressable onPress={() => setMaterialType('other')} style={[styles.typeButton, materialType === 'other' && styles.typeButtonActive]} disabled={isEditMode}>
                   <Text style={[styles.typeButtonText, materialType === 'other' && styles.typeButtonTextActive]}>Other</Text>
                 </Pressable>
               </View>
@@ -216,7 +270,7 @@ const myMaterials = () => {
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </Pressable>
               <Pressable style={[styles.button, styles.addButton, submitting && styles.buttonDisabled]} onPress={handleAddMaterial} disabled={submitting}>
-                <Text style={styles.addButtonText}>{submitting ? 'Adding...' : 'Add Material'}</Text>
+                <Text style={styles.addButtonText}>{submitting ? (isEditMode ? 'Updating...' : 'Adding...') : isEditMode ? 'Update Material' : 'Add Material'}</Text>
               </Pressable>
             </View>
           </ScrollView>
@@ -235,34 +289,50 @@ const myMaterials = () => {
         </Pressable>
       </View>
 
+      <View style={styles.spacer} />
+
       <ScrollView contentContainerStyle={styles.buttonsContainer}>
         {loading ? (
           <Text style={styles.emptyText}>Loading materials...</Text>
         ) : filteredMaterials.length > 0 ? (
           filteredMaterials.map((material) => (
-            <View key={material.id} style={styles.material}>
-              <Image style={{width: 160, height:160}} source={Materials} />
-              <View style={{justifyContent: 'center', paddingLeft: 12, flex: 1}}>
-                <Text style={{fontSize: 18, fontWeight: '600'}}>{material.name}</Text>
+            <View key={material.id} style={styles.materialCard}>
+              <Image 
+                style={{width: 80, height: 80, borderRadius: 12}} 
+                source={activeTab === 'yarn' ? Yarn : activeTab === 'hook' ? Hook : Other} 
+              />
+              <View style={{paddingLeft: 12, flex: 1}}>
+                <Text style={{fontSize: 16, fontWeight: '700', color: '#6B5E4B', marginBottom: 6}}>{material.name}</Text>
+                
                 {activeTab === 'yarn' && (
                   <>
-                    <Text style={{fontSize: 14, color: '#6B5E4B'}}>Color: {material.color || 'N/A'}</Text>
-                    <Text style={{fontSize: 14, color: '#6B5E4B'}}>Weight: {material.weight || 'N/A'}g</Text>
-                    <Text style={{fontSize: 14, color: '#6B5E4B'}}>Length: {material.length || 'N/A'}m</Text>
+                    {material.color && <Text style={{fontSize: 12, color: '#8A7E70'}}>Color: {material.color}</Text>}
+                    {material.weight && <Text style={{fontSize: 12, color: '#8A7E70'}}>Weight: {material.weight}g</Text>}
+                    {material.length && <Text style={{fontSize: 12, color: '#8A7E70'}}>Length: {material.length}m</Text>}
                   </>
                 )}
+                
                 {activeTab === 'hook' && (
                   <>
-                    <Text style={{fontSize: 14, color: '#6B5E4B'}}>Size: {material.size || 'N/A'}mm</Text>
-                    <Text style={{fontSize: 14, color: '#6B5E4B'}}>Qty: {material.quantity || 0}</Text>
+                    {material.size && <Text style={{fontSize: 12, color: '#8A7E70'}}>Size: {material.size}mm</Text>}
+                    {material.quantity && <Text style={{fontSize: 12, color: '#8A7E70'}}>Quantity: {material.quantity}</Text>}
                   </>
                 )}
+                
                 {activeTab === 'other' && (
                   <>
-                    <Text style={{fontSize: 14, color: '#6B5E4B'}}>Category: {material.category || 'N/A'}</Text>
-                    <Text style={{fontSize: 14, color: '#6B5E4B'}}>Qty: {material.quantity || 0}</Text>
+                    {material.category && <Text style={{fontSize: 12, color: '#8A7E70'}}>Category: {material.category}</Text>}
+                    {material.quantity && <Text style={{fontSize: 12, color: '#8A7E70'}}>Quantity: {material.quantity}</Text>}
                   </>
                 )}
+              </View>
+              <View style={styles.actionButtons}>
+                <Pressable style={styles.editButton} onPress={() => handleEditMaterial(material)}>
+                  <Text style={styles.editButtonText}>✏️</Text>
+                </Pressable>
+                <Pressable style={styles.deleteButton} onPress={() => handleDeleteMaterial(material.id)}>
+                  <Text style={styles.deleteButtonText}>🗑️</Text>
+                </Pressable>
               </View>
             </View>
           ))
@@ -319,6 +389,9 @@ const styles = StyleSheet.create({
     color: '#1C1C1C',
     fontWeight: '700'
   },
+  spacer: {
+    height: 12,
+  },
   buttonsContainer: {
     flexDirection: 'row',
     flexWrap: "wrap",
@@ -326,9 +399,18 @@ const styles = StyleSheet.create({
     gap: 20,
     paddingBottom: 100
   },
-  material: {
+  materialCard: {
     width: "95%",
     flexDirection: "row",
+    backgroundColor: '#FFF8DB',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   emptyText: {
     marginTop: 24,
@@ -469,4 +551,36 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1C1C1C',
   },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  editButton: {
+    backgroundColor: '#E7B469',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteButton: {
+    backgroundColor: '#FF6B6B',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editButtonText: {
+    color: '#1C1C1C',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  deleteButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 16,
+  }
+
 });
