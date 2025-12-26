@@ -25,6 +25,7 @@ const Community = () => {
   const [isCommentsModalVisible, setIsCommentsModalVisible] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [commentUsers, setCommentUsers] = useState<Record<string, string>>({});
+  const [postAuthors, setPostAuthors] = useState<Record<string, string>>({});
   const [publicProjects, setPublicProjects] = useState<{ id: string; title: string }[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedProjectTitle, setSelectedProjectTitle] = useState<string>('');
@@ -59,6 +60,35 @@ const Community = () => {
     );
 
     setCommentUsers(Object.fromEntries(entries));
+  };
+
+  const loadPostAuthors = async (postsData: any[]) => {
+    const authorIds = new Set<string>();
+    postsData.forEach((post) => {
+      if (post?.user_id) authorIds.add(post.user_id);
+    });
+
+    if (!authorIds.size) {
+      setPostAuthors({});
+      return;
+    }
+
+    const entries = await Promise.all(
+      Array.from(authorIds).map(async (uid) => {
+        try {
+          const snap = await getDoc(doc(db, 'users', uid));
+          if (snap.exists()) {
+            const data = snap.data();
+            return [uid, data.username || 'Anonymous'] as [string, string];
+          }
+        } catch (err) {
+          console.log('Error fetching username for post author:', err);
+        }
+        return [uid, 'Anonymous'] as [string, string];
+      })
+    );
+
+    setPostAuthors(Object.fromEntries(entries));
   };
 
   useEffect(() => {
@@ -104,6 +134,7 @@ const Community = () => {
       }));
       
       await loadCommentUsers(postsData);
+      await loadPostAuthors(postsData);
       setPosts(postsData);
     } catch (err) {
       console.log('Error fetching posts:', err);
@@ -181,7 +212,7 @@ const Community = () => {
         
         let imageBase64 = '';
         if (image) {
-          imageBase64 = await uploadImage(image); // usunięto imageFormat
+          imageBase64 = await uploadImage(image);
         }
   
         const postData = {
@@ -189,7 +220,6 @@ const Community = () => {
           content: content,
           image: imageBase64,
           user_id: userId,
-          user_name: userName,
           createdAt: new Date(),
           likes: [],
           comments: [],
@@ -288,6 +318,7 @@ const Community = () => {
     const isLiked = item.likes?.includes(userId);
     const likesCount = item.likes?.length || 0;
     const commentsCount = item.comments?.length || 0;
+    const authorName = postAuthors[item.user_id] || 'Anonymous';
 
     return (
       <View style={styles.postCard}>
@@ -296,7 +327,7 @@ const Community = () => {
         )}
         <View style={styles.postContent}>
           <Text style={styles.postTitle}>{item.title}</Text>
-          <Text style={styles.postAuthor}>by {item.user_name}</Text>
+          <Text style={styles.postAuthor}>by {authorName}</Text>
           {item.project_title ? (
             <View style={styles.projectChipInline}>
               <Text style={styles.projectChipText}>Based on: {item.project_title}</Text>
@@ -363,6 +394,9 @@ const Community = () => {
         onRequestClose={handleCancel}
       >
         <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Add Post</Text>
+          </View>
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <Text style={styles.modalTitle}>Add Post</Text>
 
@@ -578,7 +612,7 @@ const styles = StyleSheet.create({
   },
   postImage: {
     width: '100%',
-    height: 200,
+    height: 300,
     resizeMode: 'cover',
   },
   postContent: {
@@ -646,22 +680,29 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1C1C1C',
   },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#FFFBF5',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
-  },
   scrollContent: {
     paddingHorizontal: 16,
     paddingVertical: 20,
     paddingBottom: 60,
   },
   modalTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
     color: '#6B5E4B',
-    marginBottom: 24,
+    marginBottom: 0,
     textAlign: 'center',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#FFFBF5',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  modalHeader: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    backgroundColor: '#F9E7C6',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E7B469',
   },
   section: {
     marginBottom: 20,

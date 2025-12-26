@@ -21,8 +21,8 @@ const RootLayout = () => {
       <Stack.Screen name='tutorials' options={{title: 'Tutorials'}}/>
       <Stack.Screen name='profile' options={{title: 'Profile'}}/>
       <Stack.Screen name='myMaterials' options={{title: 'My Materials'}}/>
-      <Stack.Screen name='editProfile' options={{title: 'Edit Profile'}}/>
-      <Stack.Screen name='community' options={{title: 'Community'}}/>
+      <Stack.Screen name='community' options={{headerShown: false}}/>
+      <Stack.Screen name='projects' options={{title: 'Projects'}}/>
     </Stack>
     
   )
