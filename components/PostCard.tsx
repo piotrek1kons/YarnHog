@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Pressable, Modal, Animated } from 'react-native';
+import ProfileAvatar from '../assets/img/profile.png';
 
 interface PostCardProps {
   post: any;
@@ -20,14 +21,30 @@ const PostCard: React.FC<PostCardProps> = ({
   onRating,
   onOpenComments,
 }) => {
+  const [isImageModalVisible, setIsImageModalVisible] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(true);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
   const isLiked = post.likes?.includes(userId);
   const likesCount = post.likes?.length || 0;
   const commentsCount = post.comments?.length || 0;
   const authorName = postAuthors[post.user_id] || 'Anonymous';
   const authorAvatar = userAvatars[post.user_id] || '';
+  const authorAvatarSource = authorAvatar ? { uri: authorAvatar } : ProfileAvatar;
   const userRating = userId && post.ratings ? post.ratings[userId] || 0 : 0;
   const averageRating = getAverageRating(post.ratings);
   const ratingCount = Object.keys(post.ratings || {}).length;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }).start(() => setShowOverlay(false));
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [fadeAnim]);
 
   function getAverageRating(ratings: Record<string, number> = {}): string {
     const values = Object.values(ratings);
@@ -48,18 +65,26 @@ const PostCard: React.FC<PostCardProps> = ({
   }
 
   return (
-    <View style={styles.postCard}>
-      {post.image && (
-        <Image source={{ uri: post.image }} style={styles.postImage} />
-      )}
-      <View style={styles.postContent}>
+    <>
+      <View style={styles.postCard}>
+        {post.image && (
+          <TouchableOpacity activeOpacity={0.9} onPress={() => setIsImageModalVisible(true)}>
+            <View style={styles.imageContainer}>
+              <Image source={{ uri: post.image }} style={styles.postImage} />
+              {showOverlay && (
+                <Animated.View style={[styles.imageOverlay, { opacity: fadeAnim }]}>
+                  <Text style={styles.zoomText}>🔍 Click to zoom</Text>
+                </Animated.View>
+              )}
+            </View>
+          </TouchableOpacity>
+        )}
+        <View style={styles.postContent}>
         <Text style={styles.postTitle}>{post.title}</Text>
 
         {/* Author with Avatar */}
         <View style={styles.authorContainer}>
-          {authorAvatar && (
-            <Image source={{ uri: authorAvatar }} style={styles.avatarSmall} />
-          )}
+          <Image source={authorAvatarSource} style={styles.avatarSmall} />
           <Text style={styles.postAuthor}>by {authorName}</Text>
         </View>
 
@@ -132,7 +157,33 @@ const PostCard: React.FC<PostCardProps> = ({
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+      </View>
+
+      <Modal
+        visible={isImageModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsImageModalVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setIsImageModalVisible(false)}
+        >
+          <View style={styles.modalContent}>
+            <Pressable onPress={() => setIsImageModalVisible(false)} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>✕</Text>
+            </Pressable>
+            {post.image ? (
+              <Image
+                source={{ uri: post.image }}
+                style={styles.fullImage}
+                resizeMode="contain"
+              />
+            ) : null}
+          </View>
+        </Pressable>
+      </Modal>
+    </>
   );
 };
 
@@ -295,5 +346,61 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#6B5E4B',
+  },
+  imageContainer: {
+    position: 'relative',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  zoomText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+    backgroundColor: 'rgba(231, 180, 105, 0.9)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '95%',
+    height: '90%',
+    position: 'relative',
+  },
+  fullImage: {
+    width: '100%',
+    height: '100%',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 10,
+    backgroundColor: '#E7B469',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1C1C1C',
   },
 });

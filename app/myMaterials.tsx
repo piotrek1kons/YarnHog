@@ -28,6 +28,8 @@ const myMaterials = () => {
   const [submitting, setSubmitting] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isViewModalVisible, setIsViewModalVisible] = useState(false);
+  const [viewMaterial, setViewMaterial] = useState<any | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -123,6 +125,11 @@ const myMaterials = () => {
     setCategory(material.category || '');
     setNotes(material.notes || '');
     setIsModalVisible(true);
+  };
+
+  const handleViewMaterial = (material: any) => {
+    setViewMaterial(material);
+    setIsViewModalVisible(true);
   };
 
   const handleDeleteMaterial = (materialId: string) => {
@@ -296,7 +303,7 @@ const myMaterials = () => {
           <Text style={styles.emptyText}>Loading materials...</Text>
         ) : filteredMaterials.length > 0 ? (
           filteredMaterials.map((material) => (
-            <View key={material.id} style={styles.materialCard}>
+            <Pressable key={material.id} style={styles.materialCard} onPress={() => handleViewMaterial(material)}>
               <Image 
                 style={{width: 80, height: 80, borderRadius: 12}} 
                 source={activeTab === 'yarn' ? Yarn : activeTab === 'hook' ? Hook : Other} 
@@ -327,19 +334,69 @@ const myMaterials = () => {
                 )}
               </View>
               <View style={styles.actionButtons}>
-                <Pressable style={styles.editButton} onPress={() => handleEditMaterial(material)}>
+                <Pressable style={styles.editButton} onPress={(e) => { e.stopPropagation?.(); handleEditMaterial(material); }}>
                   <Text style={styles.editButtonText}>✏️</Text>
                 </Pressable>
-                <Pressable style={styles.deleteButton} onPress={() => handleDeleteMaterial(material.id)}>
+                <Pressable style={styles.deleteButton} onPress={(e) => { e.stopPropagation?.(); handleDeleteMaterial(material.id); }}>
                   <Text style={styles.deleteButtonText}>🗑️</Text>
                 </Pressable>
               </View>
-            </View>
+            </Pressable>
           ))
         ) : (
           <Text style={styles.emptyText}>No materials in this category</Text>
         )}
       </ScrollView>
+
+      {/* View Material Modal */}
+      <Modal
+        visible={isViewModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsViewModalVisible(false)}
+      >
+        <View style={styles.viewOverlay}>
+          <View style={styles.viewCard}>
+            <View style={styles.viewHeader}>
+              <Text style={styles.viewTitle}>{viewMaterial?.name || 'Material details'}</Text>
+              <Pressable onPress={() => setIsViewModalVisible(false)}>
+                <Text style={styles.closeIcon}>✕</Text>
+              </Pressable>
+            </View>
+
+            <ScrollView contentContainerStyle={styles.viewContent}>
+              {viewMaterial?.type === 'yarn' && (
+                <>
+                  {viewMaterial?.color ? <Text style={styles.detailText}>Color: {viewMaterial.color}</Text> : null}
+                  {viewMaterial?.weight ? <Text style={styles.detailText}>Weight: {viewMaterial.weight}g</Text> : null}
+                  {viewMaterial?.length ? <Text style={styles.detailText}>Length: {viewMaterial.length}m</Text> : null}
+                  {viewMaterial?.thickness ? <Text style={styles.detailText}>Thickness: {viewMaterial.thickness}mm</Text> : null}
+                  {viewMaterial?.composition ? <Text style={styles.detailText}>Composition: {viewMaterial.composition}</Text> : null}
+                </>
+              )}
+
+              {viewMaterial?.type === 'hook' && (
+                <>
+                  {viewMaterial?.size ? <Text style={styles.detailText}>Size: {viewMaterial.size}mm</Text> : null}
+                  {viewMaterial?.material ? <Text style={styles.detailText}>Material: {viewMaterial.material}</Text> : null}
+                  {viewMaterial?.quantity ? <Text style={styles.detailText}>Quantity: {viewMaterial.quantity}</Text> : null}
+                </>
+              )}
+
+              {viewMaterial?.type === 'other' && (
+                <>
+                  {viewMaterial?.category ? <Text style={styles.detailText}>Category: {viewMaterial.category}</Text> : null}
+                  {viewMaterial?.quantity ? <Text style={styles.detailText}>Quantity: {viewMaterial.quantity}</Text> : null}
+                </>
+              )}
+
+              {viewMaterial?.notes ? (
+                <Text style={styles.detailText}>Notes: {viewMaterial.notes}</Text>
+              ) : null}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       <Pressable 
         style={styles.fab}
@@ -581,6 +638,45 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 16,
-  }
+  },
+
+  viewOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  viewCard: {
+    width: '100%',
+    maxHeight: '80%',
+    backgroundColor: '#FFFBF5',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E7B469',
+  },
+  viewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  viewTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#6B5E4B',
+  },
+  closeIcon: {
+    fontSize: 22,
+    color: '#6B5E4B',
+  },
+  viewContent: {
+    gap: 8,
+  },
+  detailText: {
+    fontSize: 14,
+    color: '#1C1C1C',
+  },
 
 });

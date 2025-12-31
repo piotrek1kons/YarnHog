@@ -203,6 +203,11 @@ const ProfileScreen = () => {
         setIsEditModalVisible(false);
     };
 
+    const handleRemoveAvatar = () => {
+        setEditAvatarUrl("");
+        Alert.alert('Avatar removed', 'Default avatar will be used after saving.');
+    };
+
     const handleLogout = async () => {
         await auth.signOut();
         router.replace("/");
@@ -391,6 +396,15 @@ const ProfileScreen = () => {
                                     {uploading ? 'Uploading...' : editAvatarUrl ? 'Change avatar' : 'Choose avatar'}
                                 </Text>
                             </Pressable>
+                            {editAvatarUrl ? (
+                                <Pressable 
+                                    style={[styles.removeAvatarButton, uploading && styles.buttonDisabled]} 
+                                    onPress={handleRemoveAvatar}
+                                    disabled={uploading}
+                                >
+                                    <Text style={styles.removeAvatarButtonText}>Remove avatar (use default)</Text>
+                                </Pressable>
+                            ) : null}
                         </View>
 
                         {/* Change Password Section */}
@@ -736,6 +750,20 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: '#1C1C1C',
+    },
+    removeAvatarButton: {
+        marginTop: 10,
+        backgroundColor: '#F0E5D8',
+        borderWidth: 1,
+        borderColor: '#E7B469',
+        paddingVertical: 10,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    removeAvatarButtonText: {
+        color: '#6B5E4B',
+        fontSize: 14,
+        fontWeight: '600',
     },
     postsCard: {
         backgroundColor: '#FFF8DB',

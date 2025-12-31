@@ -9,6 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 
 import NavPanel from '../components/navPanel';
+import ProfileAvatar from '../assets/img/profile.png';
 import PostCard from '../components/PostCard';
 
 const Community = () => {
@@ -528,12 +529,11 @@ const Community = () => {
             keyExtractor={(item, index) => index.toString()}
             renderItem={({ item }) => {
               const commentAuthorAvatar = commentUserAvatars[item.user_id] || '';
+              const commentAvatarSource = commentAuthorAvatar ? { uri: commentAuthorAvatar } : ProfileAvatar;
               return (
                 <View style={styles.commentCard}>
                   <View style={styles.commentAuthorContainer}>
-                    {commentAuthorAvatar && (
-                      <Image source={{ uri: commentAuthorAvatar }} style={styles.avatarTiny} />
-                    )}
+                    <Image source={commentAvatarSource} style={styles.avatarTiny} />
                     <Text style={styles.commentAuthor}>{commentUsers[item.user_id] || item.user_name || 'Anonymous'}</Text>
                   </View>
                   <Text style={styles.commentText}>{item.text}</Text>
