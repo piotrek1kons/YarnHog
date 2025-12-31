@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, Image, ScrollView, Platform, StatusBar } from "react-native";
+import { StyleSheet, View, Text, Image, ScrollView, Platform, StatusBar, Modal, TouchableOpacity, Pressable, Animated } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { db } from "../../FirebaseConfig";
@@ -34,6 +34,9 @@ const parseMaterials = (text: string): string[] => {
 const ProjectDetails = () => {
     const { id } = useLocalSearchParams();
     const [project, setProject] = useState<Project | null>(null);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [showOverlay, setShowOverlay] = useState(true);
+    const fadeAnim = React.useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
         const fetchProject = async () => {
@@ -55,6 +58,20 @@ const ProjectDetails = () => {
         fetchProject();
     }, [id]);
 
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            Animated.timing(fadeAnim, {
+                toValue: 0,
+                duration: 500,
+                useNativeDriver: true,
+            }).start(() => {
+                setShowOverlay(false);
+            });
+        }, 1500);
+
+        return () => clearTimeout(timer);
+    }, [fadeAnim]);
+
     const materialItems = parseMaterials(project?.materials || "");
 
     const sectionItems = (project?.sections || []).filter(
@@ -75,7 +92,16 @@ const ProjectDetails = () => {
                 <Text style={styles.title}>{project.title}</Text>
 
                 {project.image && (
-                    <Image source={{ uri: project.image }} style={styles.heroImage} />
+                    <TouchableOpacity onPress={() => setSelectedImage(project.image)} activeOpacity={0.9}>
+                        <View style={styles.imageContainer}>
+                            <Image source={{ uri: project.image }} style={styles.heroImage} />
+                            {showOverlay && (
+                                <Animated.View style={[styles.imageOverlay, { opacity: fadeAnim }]}>
+                                    <Text style={styles.zoomText}>🔍 Click to zoom</Text>
+                                </Animated.View>
+                            )}
+                        </View>
+                    </TouchableOpacity>
                 )}
 
                 <View style={styles.section}>
@@ -100,7 +126,16 @@ const ProjectDetails = () => {
                             <View key={`${section.name}-${index}`} style={styles.sectionCard}>
                                 <Text style={styles.sectionTitle}>{section.name || `Section ${index + 1}`}</Text>
                                 {section.image ? (
-                                    <Image source={{ uri: section.image }} style={styles.sectionImage} />
+                                    <TouchableOpacity onPress={() => setSelectedImage(section.image!)} activeOpacity={0.9}>
+                                        <View style={styles.imageContainer}>
+                                            <Image source={{ uri: section.image }} style={styles.sectionImage} />
+                                            {showOverlay && (
+                                                <Animated.View style={[styles.imageOverlay, { opacity: fadeAnim }]}>
+                                                    <Text style={styles.zoomText}>🔍 Click to zoom</Text>
+                                                </Animated.View>
+                                            )}
+                                        </View>
+                                    </TouchableOpacity>
                                 ) : null}
                                 {section.description ? (
                                     <Text style={styles.body}>{section.description}</Text>
@@ -114,6 +149,32 @@ const ProjectDetails = () => {
                     )}
                 </View>
             </View>
+
+            {/* Image Zoom Modal */}
+            <Modal
+                visible={!!selectedImage}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setSelectedImage(null)}
+            >
+                <Pressable 
+                    style={styles.modalOverlay}
+                    onPress={() => setSelectedImage(null)}
+                >
+                    <View style={styles.modalContent}>
+                        <Pressable onPress={() => setSelectedImage(null)} style={styles.closeButton}>
+                            <Text style={styles.closeButtonText}>✕</Text>
+                        </Pressable>
+                        {selectedImage && (
+                            <Image 
+                                source={{ uri: selectedImage }} 
+                                style={styles.fullImage}
+                                resizeMode="contain"
+                            />
+                        )}
+                    </View>
+                </Pressable>
+            </Modal>
         </ScrollView>
     );
 };
@@ -191,19 +252,43 @@ const styles = StyleSheet.create({
         color: "#6B5E4B",
         marginBottom: 8,
     },
+    imageContainer: {
+        position: "relative",
+        marginBottom: 8,
+    },
+    imageOverlay: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.3)",
+        justifyContent: "center",
+        alignItems: "center",
+        borderRadius: 12,
+    },
+    zoomText: {
+        color: "#FFF",
+        fontSize: 16,
+        fontWeight: "700",
+        textAlign: "center",
+        backgroundColor: "rgba(231, 180, 105, 0.9)",
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        overflow: "hidden",
+    },
     sectionImage: {
         width: "100%",
-        height: 200,
+        height: 220,
         borderRadius: 10,
-        marginBottom: 8,
         resizeMode: "cover",
     },
     heroImage: {
         width: "100%",
-        height: 220,
+        height: 250,
         resizeMode: "cover",
         borderRadius: 12,
-        marginBottom: 12,
     },
     chipRow: {
         flexDirection: "row",
@@ -224,5 +309,37 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "600",
         color: "#6B5E4B",
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.9)",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    modalContent: {
+        width: "95%",
+        height: "90%",
+        position: "relative",
+    },
+    fullImage: {
+        width: "100%",
+        height: "100%",
+    },
+    closeButton: {
+        position: "absolute",
+        top: 10,
+        right: 10,
+        zIndex: 10,
+        backgroundColor: "#E7B469",
+        borderRadius: 20,
+        width: 40,
+        height: 40,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    closeButtonText: {
+        fontSize: 24,
+        fontWeight: "700",
+        color: "#1C1C1C",
     },
 });

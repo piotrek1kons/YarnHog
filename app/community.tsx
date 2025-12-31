@@ -9,6 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 
 import NavPanel from '../components/navPanel';
+import PostCard from '../components/PostCard';
 
 const Community = () => {
   const router = useRouter();
@@ -30,6 +31,9 @@ const Community = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedProjectTitle, setSelectedProjectTitle] = useState<string>('');
   const [showProjectPicker, setShowProjectPicker] = useState<boolean>(false);
+  const [userAvatars, setUserAvatars] = useState<Record<string, string>>({});
+  const [commentUserAvatars, setCommentUserAvatars] = useState<Record<string, string>>({});
+  const [userRatings, setUserRatings] = useState<Record<string, Record<string, number>>>({});
 
   const loadCommentUsers = async (postsData: any[]) => {
     const ids = new Set<string>();
@@ -41,25 +45,27 @@ const Community = () => {
 
     if (!ids.size) {
       setCommentUsers({});
+      setCommentUserAvatars({});
       return;
     }
 
-    const entries = await Promise.all(
+    const userEntries = await Promise.all(
       Array.from(ids).map(async (uid) => {
         try {
           const snap = await getDoc(doc(db, 'users', uid));
           if (snap.exists()) {
             const data = snap.data();
-            return [uid, data.username || 'Anonymous'] as [string, string];
+            return [uid, data.username || 'Anonymous', data.avatarUrl || ''] as [string, string, string];
           }
         } catch (err) {
           console.log('Error fetching username for comment user:', err);
         }
-        return [uid, 'Anonymous'] as [string, string];
+        return [uid, 'Anonymous', ''] as [string, string, string];
       })
     );
 
-    setCommentUsers(Object.fromEntries(entries));
+    setCommentUsers(Object.fromEntries(userEntries.map(([id, name]) => [id, name])));
+    setCommentUserAvatars(Object.fromEntries(userEntries.map(([id, , avatar]) => [id, avatar])));
   };
 
   const loadPostAuthors = async (postsData: any[]) => {
@@ -70,25 +76,27 @@ const Community = () => {
 
     if (!authorIds.size) {
       setPostAuthors({});
+      setUserAvatars({});
       return;
     }
 
-    const entries = await Promise.all(
+    const authorEntries = await Promise.all(
       Array.from(authorIds).map(async (uid) => {
         try {
           const snap = await getDoc(doc(db, 'users', uid));
           if (snap.exists()) {
             const data = snap.data();
-            return [uid, data.username || 'Anonymous'] as [string, string];
+            return [uid, data.username || 'Anonymous', data.avatarUrl || ''] as [string, string, string];
           }
         } catch (err) {
           console.log('Error fetching username for post author:', err);
         }
-        return [uid, 'Anonymous'] as [string, string];
+        return [uid, 'Anonymous', ''] as [string, string, string];
       })
     );
 
-    setPostAuthors(Object.fromEntries(entries));
+    setPostAuthors(Object.fromEntries(authorEntries.map(([id, name]) => [id, name])));
+    setUserAvatars(Object.fromEntries(authorEntries.map(([id, , avatar]) => [id, avatar])));
   };
 
   useEffect(() => {
@@ -223,6 +231,7 @@ const Community = () => {
           createdAt: new Date(),
           likes: [],
           comments: [],
+          ratings: {},
           project_id: selectedProjectId || '',
           project_title: selectedProjectTitle || '',
         };
@@ -280,6 +289,26 @@ const Community = () => {
     }
   };
 
+  const handleRating = async (postId: string, rating: number) => {
+    if (!userId || rating < 1 || rating > 5) return;
+
+    try {
+      const postRef = doc(db, 'posts', postId);
+      const post = posts.find(p => p.id === postId);
+      
+      const updatedRatings = { ...post?.ratings || {} };
+      updatedRatings[userId] = rating;
+
+      await updateDoc(postRef, {
+        ratings: updatedRatings
+      });
+
+      fetchPosts();
+    } catch (err) {
+      console.log('Error rating post:', err);
+    }
+  };
+
   const handleAddComment = async () => {
     if (!commentText.trim() || !selectedPost) return;
 
@@ -315,48 +344,16 @@ const Community = () => {
   };
 
   const renderPost = ({ item }: { item: any }) => {
-    const isLiked = item.likes?.includes(userId);
-    const likesCount = item.likes?.length || 0;
-    const commentsCount = item.comments?.length || 0;
-    const authorName = postAuthors[item.user_id] || 'Anonymous';
-
     return (
-      <View style={styles.postCard}>
-        {item.image && (
-          <Image source={{ uri: item.image }} style={styles.postImage} />
-        )}
-        <View style={styles.postContent}>
-          <Text style={styles.postTitle}>{item.title}</Text>
-          <Text style={styles.postAuthor}>by {authorName}</Text>
-          {item.project_title ? (
-            <View style={styles.projectChipInline}>
-              <Text style={styles.projectChipText}>Based on: {item.project_title}</Text>
-            </View>
-          ) : null}
-          <Text style={styles.postText}>{item.content}</Text>
-          
-          {/* Likes and Comments Section */}
-          <View style={styles.actionsContainer}>
-            <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={() => handleLike(item.id, item.likes || [])}
-            >
-              <Text style={[styles.actionIcon, isLiked && styles.liked]}>
-                {isLiked ? '❤️' : '🤍'}
-              </Text>
-              <Text style={styles.actionCount}>{likesCount}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={() => openComments(item)}
-            >
-              <Text style={styles.actionIcon}>💬</Text>
-              <Text style={styles.actionCount}>{commentsCount}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+      <PostCard
+        post={item}
+        userId={userId}
+        postAuthors={postAuthors}
+        userAvatars={userAvatars}
+        onLike={handleLike}
+        onRating={handleRating}
+        onOpenComments={openComments}
+      />
     );
   };
 
@@ -529,12 +526,20 @@ const Community = () => {
           <FlatList
             data={selectedPost?.comments || []}
             keyExtractor={(item, index) => index.toString()}
-            renderItem={({ item }) => (
-              <View style={styles.commentCard}>
-                <Text style={styles.commentAuthor}>{commentUsers[item.user_id] || item.user_name || 'Anonymous'}</Text>
-                <Text style={styles.commentText}>{item.text}</Text>
-              </View>
-            )}
+            renderItem={({ item }) => {
+              const commentAuthorAvatar = commentUserAvatars[item.user_id] || '';
+              return (
+                <View style={styles.commentCard}>
+                  <View style={styles.commentAuthorContainer}>
+                    {commentAuthorAvatar && (
+                      <Image source={{ uri: commentAuthorAvatar }} style={styles.avatarTiny} />
+                    )}
+                    <Text style={styles.commentAuthor}>{commentUsers[item.user_id] || item.user_name || 'Anonymous'}</Text>
+                  </View>
+                  <Text style={styles.commentText}>{item.text}</Text>
+                </View>
+              );
+            }}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>No comments yet. Add the first!</Text>
@@ -596,68 +601,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6B5E4B',
     fontStyle: 'italic',
-  },
-  postCard: {
-    backgroundColor: '#FFF8DB',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#E7B469',
-    marginBottom: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  postImage: {
-    width: '100%',
-    height: 300,
-    resizeMode: 'cover',
-  },
-  postContent: {
-    padding: 16,
-  },
-  postTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#6B5E4B',
-    marginBottom: 8,
-  },
-  postAuthor: {
-    fontSize: 12,
-    color: '#B0A898',
-    fontStyle: 'italic',
-    marginBottom: 8,
-  },
-  postText: {
-    fontSize: 14,
-    color: '#1C1C1C',
-    lineHeight: 20,
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E7B469',
-    gap: 20,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  actionIcon: {
-    fontSize: 20,
-  },
-  liked: {
-    transform: [{ scale: 1.1 }],
-  },
-  actionCount: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B5E4B',
   },
   fab: {
     position: 'absolute',
@@ -933,5 +876,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#1C1C1C',
+  },
+  commentAuthorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    gap: 6,
+  },
+  avatarTiny: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    resizeMode: 'cover',
+    marginRight: 6,
   },
 });
