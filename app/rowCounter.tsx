@@ -1,9 +1,8 @@
 import { StyleSheet, Text, View, Image, StatusBar, Platform, ScrollView, Pressable } from 'react-native'
 import React, { useState, useEffect } from 'react'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-
+import { auth, db } from '../FirebaseConfig';
+import { doc, getDoc, setDoc, collection, onSnapshot } from 'firebase/firestore';
 import Counter from '../components/counter';
-import { count } from 'firebase/firestore';
 import NavPanel from '@/components/navPanel';
 
 const rowCounter = () => {
@@ -11,27 +10,32 @@ const rowCounter = () => {
   const [counters, setCounters] = useState([{ id: 1 }]);
   const [nextId, setNextId] = useState(2);
   const [isLoading, setIsLoading] = useState(true);
+  const user = auth.currentUser;
 
   useEffect(() => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
     loadCounters();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && user) {
       saveCounters();
     }
   }, [counters, nextId, isLoading]);
 
   const loadCounters = async () => {
+    if (!user) return;
     try {
-      const savedCounters = await AsyncStorage.getItem('rowCounters');
-      const savedNextId = await AsyncStorage.getItem('rowNextId');
+      const docRef = doc(db, 'users', user.uid, 'rowCounterSettings', 'config');
+      const docSnap = await getDoc(docRef);
       
-      if (savedCounters !== null) {
-        setCounters(JSON.parse(savedCounters));
-      }
-      if (savedNextId !== null) {
-        setNextId(parseInt(savedNextId, 10));
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setCounters(data.counters || [{ id: 1 }]);
+        setNextId(data.nextId || 2);
       }
     } catch (error) {
       console.error('Error loading counters:', error);
@@ -41,9 +45,14 @@ const rowCounter = () => {
   };
 
   const saveCounters = async () => {
+    if (!user) return;
     try {
-      await AsyncStorage.setItem('rowCounters', JSON.stringify(counters));
-      await AsyncStorage.setItem('rowNextId', nextId.toString());
+      const docRef = doc(db, 'users', user.uid, 'rowCounterSettings', 'config');
+      await setDoc(docRef, {
+        counters: counters,
+        nextId: nextId,
+        updatedAt: new Date()
+      });
     } catch (error) {
       console.error('Error saving counters:', error);
     }

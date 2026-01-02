@@ -18,17 +18,15 @@ type Project = {
 };
 
 const parseMaterials = (text: string): string[] => {
-    return Array.from(
-        new Set(
-            text
-                .split(/\r?\n/) // split lines
-                .flatMap((line) => line.split(/[;,]+/)) // further split by commas/semicolons
-                .map((item) => item.replace(/^\s*[\u2022•\-–—]\s*/, "")) // remove bullets (• - – —)
-                .map((item) => item.replace(/^\s*\d+[\.\)\-]?\s*/, "")) // remove leading numbering (1. 1) 1-
-                .map((item) => item.trim())
-                .filter(Boolean)
-        )
-    );
+    return text
+        .split(';') // Split primarily by semicolon
+        .map((item) => item.trim()) // Remove whitespace
+        .filter((item) => item.length > 0) // Remove empty strings
+        .map((item) => item.replace(/^\s*[\u2022•\-–—]\s*/, "")) // Remove bullets (• - – —)
+        .map((item) => item.replace(/^\d+[\.\)\-]\s+/, "")) // Remove ONLY list numbering (1. 1) 1- at start)
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0) // Remove empty after processing
+        .filter((item, index, self) => self.indexOf(item) === index); // Remove exact duplicates
 };
 
 const ProjectDetails = () => {

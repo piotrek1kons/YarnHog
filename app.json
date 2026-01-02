@@ -2,12 +2,12 @@
   "expo": {
     "scheme": "yarnhog",
     "name": "YarnHog",
-    "slug": "YarnHog",
+    "slug": "yarnhog",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/img/logo.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "updates": {
       "enabled": false
     },
@@ -17,21 +17,36 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.piotr.yarnhog"
     },
     "android": {
+      "package": "com.piotr.yarnhog",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/img/logo.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "INTERNET",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "CAMERA"
+      ]
     },
     "web": {
       "favicon": "/assets/img/logo.png"
     },
     "plugins": [
       "expo-router"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "4608c9f1-5188-4960-8f50-32c40d69fbe6"
+      }
+    }
   }
 }

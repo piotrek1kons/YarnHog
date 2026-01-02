@@ -1,30 +1,36 @@
-import { serverTimestamp } from "firebase/firestore";
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import YoutubePlayer from "react-native-youtube-iframe";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { auth, db } from '../FirebaseConfig';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const Counter = ({ id }: { id?: number }) => {
   const [count, setCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-
-  const storageKey = id ? `counter_${id}` : 'counter_default';
+  const user = auth.currentUser;
+  const counterId = id ? `counter_${id}` : 'counter_default';
 
   useEffect(() => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
     loadCount();
-  }, [id]);
+  }, [id, user]);
 
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && user) {
       saveCount();
     }
   }, [count]);
 
   const loadCount = async () => {
+    if (!user) return;
     try {
-      const savedCount = await AsyncStorage.getItem(storageKey);
-      if (savedCount !== null) {
-        setCount(parseInt(savedCount, 10));
+      const docRef = doc(db, 'users', user.uid, 'counters', counterId);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        setCount(docSnap.data().value || 0);
       }
     } catch (error) {
       console.error('Error loading count:', error);
@@ -34,8 +40,13 @@ const Counter = ({ id }: { id?: number }) => {
   };
 
   const saveCount = async () => {
+    if (!user) return;
     try {
-      await AsyncStorage.setItem(storageKey, count.toString());
+      const docRef = doc(db, 'users', user.uid, 'counters', counterId);
+      await setDoc(docRef, {
+        value: count,
+        updatedAt: new Date()
+      });
     } catch (error) {
       console.error('Error saving count:', error);
     }

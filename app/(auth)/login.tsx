@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Image, TextInput, StatusBar, Platform, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, Text, View, Image, TextInput, StatusBar, Platform, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView } from 'react-native';
 import { Link, router } from 'expo-router';
 import { auth } from '../../FirebaseConfig';
 import { signInWithEmailAndPassword } from 'firebase/auth';
@@ -19,12 +19,21 @@ const Login = () => {
     };
 
   return (
-    <View style={styles.container}>
-        <View style={styles.logoBlock}>
-            <Image source={Logo} style={styles.logo} />
-            <Text style={styles.title}>Welcome back</Text>
-            <Text style={styles.subtitle}>Sign in to your account</Text>
-        </View>
+    <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+        <ScrollView 
+            contentContainerStyle={styles.scrollContainer}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+        >
+            <View style={styles.container}>
+                <View style={styles.logoBlock}>
+                    <Image source={Logo} style={styles.logo} />
+                    <Text style={styles.title}>Welcome back</Text>
+                    <Text style={styles.subtitle}>Sign in to your account</Text>
+                </View>
 
         <View style={styles.form}>
             <Text style={styles.label}>Email</Text>
@@ -57,19 +66,26 @@ const Login = () => {
                 <Link href="/register" style={styles.footerLink}>Sign up</Link>
             </View>
         </View>
-    </View>
+            </View>
+        </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 export default Login
 
 const styles = StyleSheet.create({
+    scrollContainer: {
+        flexGrow: 1,
+        backgroundColor: '#FFFBF5',
+    },
+
     container: {
-        flex: 1,
         alignItems: 'center',
         backgroundColor: '#FFFBF5',
-        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+        paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 8 : 16,
         paddingHorizontal: 12,
+        paddingBottom: 40,
     },
 
     logoBlock: {

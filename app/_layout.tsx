@@ -1,7 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native'
 import React from 'react'
 import { Stack } from 'expo-router'
-import { StackScreen } from 'react-native-screens'
 
 const RootLayout = () => {
   return (
