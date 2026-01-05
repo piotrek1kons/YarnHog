@@ -4,9 +4,7 @@ import { db, auth } from '../FirebaseConfig';
 import { collection, getDocs, query, where, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import NavPanel from '../components/navPanel';
-import Yarn from '../assets/img/materials.png';
-import Hook from '../assets/img/projects.png';
-import Other from '../assets/img/other.png';
+import { getFirebaseImageUrl, FIREBASE_IMAGES } from '../utils/firebaseImages';
 
 const myMaterials = () => {     
   const [activeTab, setActiveTab] = useState<'yarn' | 'hook' | 'other'>('yarn');
@@ -30,6 +28,27 @@ const myMaterials = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [viewMaterial, setViewMaterial] = useState<any | null>(null);
+  const [imageUrls, setImageUrls] = useState({
+    yarn: '',
+    hook: '',
+    other: ''
+  });
+
+  useEffect(() => {
+    const loadImages = async () => {
+      try {
+        const [yarn, hook, other] = await Promise.all([
+          getFirebaseImageUrl(FIREBASE_IMAGES.MATERIALS),
+          getFirebaseImageUrl(FIREBASE_IMAGES.PROJECTS),
+          getFirebaseImageUrl(FIREBASE_IMAGES.OTHER),
+        ]);
+        setImageUrls({ yarn, hook, other });
+      } catch (error) {
+        console.error('Error loading images:', error);
+      }
+    };
+    loadImages();
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -304,10 +323,12 @@ const myMaterials = () => {
         ) : filteredMaterials.length > 0 ? (
           filteredMaterials.map((material) => (
             <Pressable key={material.id} style={styles.materialCard} onPress={() => handleViewMaterial(material)}>
-              <Image 
-                style={{width: 80, height: 80, borderRadius: 12}} 
-                source={activeTab === 'yarn' ? Yarn : activeTab === 'hook' ? Hook : Other} 
-              />
+              {imageUrls[activeTab] && (
+                <Image 
+                  style={{width: 80, height: 80, borderRadius: 12}} 
+                  source={{ uri: imageUrls[activeTab] }} 
+                />
+              )}
               <View style={{paddingLeft: 12, flex: 1}}>
                 <Text style={{fontSize: 16, fontWeight: '700', color: '#6B5E4B', marginBottom: 6}}>{material.name}</Text>
                 

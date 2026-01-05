@@ -1,19 +1,54 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { StyleSheet, View, Text, Pressable, Animated, Easing, Platform, Image } from "react-native";
-import NavArrow from '../assets/img/nav-arrow.png';
-import Tutorials from '../assets/img/tutorials.png';
-import Projects from '../assets/img/projects.png';
-import Profile from '../assets/img/profile.png';
-import Community from '../assets/img/community.png';
-import Materials from '../assets/img/materials.png';
-import Home from '../assets/img/home.png';
-import RowCounter from '../assets/img/row-counter.png';
 import { Link } from "expo-router";
+import { getFirebaseImageUrl, FIREBASE_IMAGES } from '../utils/firebaseImages';
 
 const NavPanel = () => {
     const [open, setOpen] = useState(false);
+    const [imageUrls, setImageUrls] = useState({
+        navArrow: '',
+        tutorials: '',
+        projects: '',
+        profile: '',
+        community: '',
+        materials: '',
+        home: '',
+        rowCounter: ''
+    });
 
-    const heightAnim = useRef(new Animated.Value(80)).current; 
+    const heightAnim = useRef(new Animated.Value(80)).current;
+
+    useEffect(() => {
+        const loadImages = async () => {
+            try {
+                const [navArrow, tutorials, projects, profile, community, materials, home, rowCounter] = await Promise.all([
+                    getFirebaseImageUrl(FIREBASE_IMAGES.NAV_ARROW),
+                    getFirebaseImageUrl(FIREBASE_IMAGES.TUTORIALS),
+                    getFirebaseImageUrl(FIREBASE_IMAGES.PROJECTS),
+                    getFirebaseImageUrl(FIREBASE_IMAGES.PROFILE),
+                    getFirebaseImageUrl(FIREBASE_IMAGES.COMMUNITY),
+                    getFirebaseImageUrl(FIREBASE_IMAGES.MATERIALS),
+                    getFirebaseImageUrl(FIREBASE_IMAGES.HOME),
+                    getFirebaseImageUrl(FIREBASE_IMAGES.ROW_COUNTER),
+                ]);
+                
+                setImageUrls({
+                    navArrow,
+                    tutorials,
+                    projects,
+                    profile,
+                    community,
+                    materials,
+                    home,
+                    rowCounter
+                });
+            } catch (error) {
+                console.error('Error loading images:', error);
+            }
+        };
+
+        loadImages();
+    }, []); 
 
     const styles = StyleSheet.create({
         mainNavBar:{
@@ -77,36 +112,36 @@ const NavPanel = () => {
     return (
         <Animated.View style={styles.mainNavBar} >
         <Pressable onPress={toggleSheet}>
-            <Image source={NavArrow} style={styles.arrow} />
+            {imageUrls.navArrow ? <Image source={{ uri: imageUrls.navArrow }} style={styles.arrow} /> : null}
         </Pressable>
             {open && (
                 <View style={styles.openNavBar}>
                     <View style={styles.navButton}>
-                        <Pressable style={styles.navImage}><Link href="/rowCounter"><Image source={RowCounter} /></Link></Pressable>
+                        <Pressable style={styles.navImage}><Link href="/rowCounter">{imageUrls.rowCounter ? <Image source={{ uri: imageUrls.rowCounter }} /> : null}</Link></Pressable>
                         <Text>Row Counter</Text>
                     </View>
                     <View style={styles.navButton}>
-                        <Pressable style={styles.navImage}><Link href="/tutorials"><Image source={Tutorials} /></Link></Pressable>
+                        <Pressable style={styles.navImage}><Link href="/tutorials">{imageUrls.tutorials ? <Image source={{ uri: imageUrls.tutorials }} /> : null}</Link></Pressable>
                         <Text >Tutorials</Text>
                     </View>
                     <View style={styles.navButton}>
-                        <Pressable style={styles.navImage}><Link href="/projects"><Image source={Projects} /></Link></Pressable>
+                        <Pressable style={styles.navImage}><Link href="/projects">{imageUrls.projects ? <Image source={{ uri: imageUrls.projects }} /> : null}</Link></Pressable>
                         <Text >Projects</Text>
                     </View>
                     <View style={styles.navButton}>
-                        <Pressable style={styles.navImage}><Link href="/profile"><Image source={Profile} /></Link></Pressable>
+                        <Pressable style={styles.navImage}><Link href="/profile">{imageUrls.profile ? <Image source={{ uri: imageUrls.profile }} /> : null}</Link></Pressable>
                         <Text >Profile</Text>
                     </View>
                     <View style={styles.navButton}>
-                        <Pressable style={styles.navImage}><Link href="/community"><Image source={Community} /></Link></Pressable>
+                        <Pressable style={styles.navImage}><Link href="/community">{imageUrls.community ? <Image source={{ uri: imageUrls.community }} /> : null}</Link></Pressable>
                         <Text >Community</Text>
                     </View>
                     <View style={styles.navButton}>
-                        <Pressable style={styles.navImage}><Link href="/myMaterials"><Image source={Materials} /></Link></Pressable>
+                        <Pressable style={styles.navImage}><Link href="/myMaterials">{imageUrls.materials ? <Image source={{ uri: imageUrls.materials }} /> : null}</Link></Pressable>
                         <Text >My Materials</Text>
                     </View>
                     <View style={styles.navButton}>
-                        <Pressable style={styles.navImage}><Link href="/home"><Image style={{borderRadius: 500}} source={Home} /></Link></Pressable>
+                        <Pressable style={styles.navImage}><Link href="/home">{imageUrls.home ? <Image style={{borderRadius: 500}} source={{ uri: imageUrls.home }} /> : null}</Link></Pressable>
                         <Text>Home</Text>
                     </View>
                     

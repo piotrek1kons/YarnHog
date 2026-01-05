@@ -1,0 +1,177 @@
+/**
+ * Firebase Security Rules dla Firestore
+ * 
+ * Skopiuj te reguły do Firebase Console:
+ * Firestore Database → Rules → Edytuj
+ * 
+ * UWAGA: Dostosuj reguły do swoich potrzeb bezpieczeństwa!
+ */
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // =====================================
+    // FUNKCJE POMOCNICZE
+    // =====================================
+    
+    // Sprawdź czy użytkownik jest zalogowany
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Sprawdź czy użytkownik jest właścicielem dokumentu
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // Sprawdź czy to właściciel zasobu
+    function isResourceOwner() {
+      return isSignedIn() && request.auth.uid == resource.data.user_id;
+    }
+    
+    // =====================================
+    // USERS
+    // =====================================
+    
+    match /users/{userId} {
+      // Wszyscy mogą czytać profile użytkowników
+      allow read: if true;
+      
+      // Tylko właściciel może tworzyć/aktualizować swój profil
+      allow create, update: if isOwner(userId);
+      
+      // Tylko właściciel może usunąć swój profil
+      allow delete: if isOwner(userId);
+    }
+    
+    // =====================================
+    // PROJECTS
+    // =====================================
+    
+    match /projects/{projectId} {
+      // Publiczne projekty może czytać każdy
+      // Prywatne projekty tylko właściciel
+      allow read: if resource.data.is_public == true || isResourceOwner();
+      
+      // Tylko zalogowani użytkownicy mogą tworzyć projekty
+      allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
+      
+      // Tylko właściciel może aktualizować swój projekt
+      allow update: if isResourceOwner();
+      
+      // Tylko właściciel może usunąć swój projekt
+      allow delete: if isResourceOwner();
+      
+      // Podkolekcja sekcji projektu
+      match /sections/{sectionId} {
+        allow read: if get(/databases/$(database)/documents/projects/$(projectId)).data.is_public == true 
+                    || isOwner(get(/databases/$(database)/documents/projects/$(projectId)).data.user_id);
+        allow create, update, delete: if isOwner(get(/databases/$(database)/documents/projects/$(projectId)).data.user_id);
+      }
+    }
+    
+    // =====================================
+    // POSTS (Community)
+    // =====================================
+    
+    match /posts/{postId} {
+      // Wszyscy mogą czytać posty
+      allow read: if true;
+      
+      // Tylko zalogowani użytkownicy mogą tworzyć posty
+      allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
+      
+      // Tylko właściciel może aktualizować swój post
+      // (np. array likes może być aktualizowany przez innych)
+      allow update: if isSignedIn();
+      
+      // Tylko właściciel może usunąć swój post
+      allow delete: if isResourceOwner();
+      
+      // =====================================
+      // COMMENTS (Podkolekcja postów)
+      // =====================================
+      
+      match /comments/{commentId} {
+        // Wszyscy mogą czytać komentarze
+        allow read: if true;
+        
+        // Tylko zalogowani użytkownicy mogą dodawać komentarze
+        allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
+        
+        // Tylko autor komentarza może go usunąć
+        // (aktualizacja komentarzy jest wyłączona - można tylko usuwać i dodawać nowe)
+        allow delete: if isResourceOwner();
+        
+        // Brak możliwości edycji komentarzy
+        allow update: if false;
+      }
+      
+      // =====================================
+      // RATINGS (Podkolekcja postów)
+      // =====================================
+      
+      match /ratings/{userId} {
+        // Wszyscy mogą czytać oceny
+        allow read: if true;
+        
+        // Użytkownik może dodać/zaktualizować tylko swoją własną ocenę
+        // Document ID musi być równe user_id
+        allow create, update: if isSignedIn() 
+                              && isOwner(userId) 
+                              && request.resource.data.user_id == userId
+                              && request.resource.data.rating >= 1 
+                              && request.resource.data.rating <= 5;
+        
+        // Użytkownik może usunąć tylko swoją własną ocenę
+        allow delete: if isOwner(userId);
+      }
+    }
+    
+    // =====================================
+    // TUTORIALS
+    // =====================================
+    
+    match /tutorials/{tutorialId} {
+      // Wszyscy mogą czytać tutoriale
+      allow read: if true;
+      
+      // Tylko zalogowani użytkownicy mogą tworzyć tutoriale
+      allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
+      
+      // Tylko właściciel może aktualizować swój tutorial
+      allow update: if isResourceOwner();
+      
+      // Tylko właściciel może usunąć swój tutorial
+      allow delete: if isResourceOwner();
+    }
+    
+    // =====================================
+    // MATERIALS
+    // =====================================
+    
+    match /materials/{materialId} {
+      // Użytkownik może czytać tylko swoje materiały
+      allow read: if isResourceOwner();
+      
+      // Użytkownik może tworzyć tylko swoje materiały
+      allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
+      
+      // Tylko właściciel może aktualizować swoje materiały
+      allow update: if isResourceOwner();
+      
+      // Tylko właściciel może usunąć swoje materiały
+      allow delete: if isResourceOwner();
+    }
+    
+    // =====================================
+    // DENY ALL OTHER PATHS
+    // =====================================
+    
+    // Zablokuj dostęp do wszystkich innych ścieżek
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

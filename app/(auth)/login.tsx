@@ -2,17 +2,33 @@ import { StyleSheet, Text, View, Image, TextInput, StatusBar, Platform, Touchabl
 import { Link, router } from 'expo-router';
 import { auth } from '../../FirebaseConfig';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import React, { useState } from 'react';
-
-import Logo from '../../assets/img/logo.png';
+import React, { useState, useEffect } from 'react';
+import { getFirebaseImageUrl, FIREBASE_IMAGES } from '../../utils/firebaseImages';
 
 const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [logoUrl, setLogoUrl] = useState('');
+
+    useEffect(() => {
+        const loadLogo = async () => {
+            try {
+                const url = await getFirebaseImageUrl(FIREBASE_IMAGES.LOGO);
+                setLogoUrl(url);
+            } catch (error) {
+                console.error('Error loading logo:', error);
+            }
+        };
+        loadLogo();
+    }, []);
+
     const signIn = async () => {
         try {
             const user = await signInWithEmailAndPassword(auth, email, password);
-            if (user) router.replace('/home');
+            if (user) {
+                Alert.alert('Success', 'Logged in successfully');
+                router.replace('/home');
+            }
         } catch (error: any) {
             Alert.alert('Sign in failed', error.message);
         }
@@ -30,7 +46,7 @@ const Login = () => {
         >
             <View style={styles.container}>
                 <View style={styles.logoBlock}>
-                    <Image source={Logo} style={styles.logo} />
+                    {logoUrl ? <Image source={{ uri: logoUrl }} style={styles.logo} /> : null}
                     <Text style={styles.title}>Welcome back</Text>
                     <Text style={styles.subtitle}>Sign in to your account</Text>
                 </View>

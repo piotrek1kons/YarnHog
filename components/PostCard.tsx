@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Pressable, Modal, Animated } from 'react-native';
-import ProfileAvatar from '../assets/img/profile.png';
+import { getFirebaseImageUrl, FIREBASE_IMAGES } from '../utils/firebaseImages';
 
 interface PostCardProps {
   post: any;
@@ -23,16 +23,29 @@ const PostCard: React.FC<PostCardProps> = ({
 }) => {
   const [isImageModalVisible, setIsImageModalVisible] = useState(false);
   const [showOverlay, setShowOverlay] = useState(true);
+  const [defaultProfileUrl, setDefaultProfileUrl] = useState('');
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const isLiked = post.likes?.includes(userId);
   const likesCount = post.likes?.length || 0;
-  const commentsCount = post.comments?.length || 0;
+  const commentsCount = post.commentsCount || 0;
   const authorName = postAuthors[post.user_id] || 'Anonymous';
   const authorAvatar = userAvatars[post.user_id] || '';
-  const authorAvatarSource = authorAvatar ? { uri: authorAvatar } : ProfileAvatar;
+  const authorAvatarSource = authorAvatar ? { uri: authorAvatar } : (defaultProfileUrl ? { uri: defaultProfileUrl } : undefined);
   const userRating = userId && post.ratings ? post.ratings[userId] || 0 : 0;
   const averageRating = getAverageRating(post.ratings);
   const ratingCount = Object.keys(post.ratings || {}).length;
+
+  useEffect(() => {
+    const loadDefaultProfile = async () => {
+      try {
+        const url = await getFirebaseImageUrl(FIREBASE_IMAGES.PROFILE);
+        setDefaultProfileUrl(url);
+      } catch (error) {
+        console.error('Error loading default profile image:', error);
+      }
+    };
+    loadDefaultProfile();
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -84,7 +97,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
         {/* Author with Avatar */}
         <View style={styles.authorContainer}>
-          <Image source={authorAvatarSource} style={styles.avatarSmall} />
+          {authorAvatarSource && <Image source={authorAvatarSource} style={styles.avatarSmall} />}
           <Text style={styles.postAuthor}>by {authorName}</Text>
         </View>
 

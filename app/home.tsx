@@ -1,14 +1,9 @@
 import { StyleSheet, Text, View, StatusBar, Platform, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import React from 'react';
-import RowCounter from '../assets/img/row-counter.png';
-import Tutorials from '../assets/img/tutorials.png';
-import Projects from '../assets/img/projects.png';
-import Materials from '../assets/img/materials.png';
-import Profile from '../assets/img/profile.png';
-import Community from '../assets/img/community.png';
+import { getFirebaseImageUrl, FIREBASE_IMAGES } from '../utils/firebaseImages';
 import ImageButton from '../components/imageButton';
 
 const palette = {
@@ -18,16 +13,36 @@ const palette = {
     text: '#6B5E4B',
 };
 
-const tiles = [
-    { image: RowCounter, label: 'Row Counter', link: '/rowCounter' },
-    { image: Tutorials, label: 'Tutorials', link: '/tutorials' },
-    { image: Projects, label: 'Projects', link: '/projects' },
-    { image: Materials, label: 'My Materials', link: '/myMaterials' },
-    { image: Profile, label: 'Profile', link: '/profile' },
-    { image: Community, label: 'Community', link: '/community' },
-];
-
 const Home = () => {
+    const [tiles, setTiles] = useState<Array<{ image: any, label: string, link: string }>>([]);
+
+    useEffect(() => {
+        const loadImages = async () => {
+            try {
+                const [rowCounter, tutorials, projects, materials, profile, community] = await Promise.all([
+                    getFirebaseImageUrl(FIREBASE_IMAGES.ROW_COUNTER),
+                    getFirebaseImageUrl(FIREBASE_IMAGES.TUTORIALS),
+                    getFirebaseImageUrl(FIREBASE_IMAGES.PROJECTS),
+                    getFirebaseImageUrl(FIREBASE_IMAGES.MATERIALS),
+                    getFirebaseImageUrl(FIREBASE_IMAGES.PROFILE),
+                    getFirebaseImageUrl(FIREBASE_IMAGES.COMMUNITY),
+                ]);
+                
+                setTiles([
+                    { image: rowCounter, label: 'Row Counter', link: '/rowCounter' },
+                    { image: tutorials, label: 'Tutorials', link: '/tutorials' },
+                    { image: projects, label: 'Projects', link: '/projects' },
+                    { image: materials, label: 'My Materials', link: '/myMaterials' },
+                    { image: profile, label: 'Profile', link: '/profile' },
+                    { image: community, label: 'Community', link: '/community' },
+                ]);
+            } catch (error) {
+                console.error('Error loading images:', error);
+            }
+        };
+        loadImages();
+    }, []);
+
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(getAuth(), (user) => {
             if (!user) router.replace('/');

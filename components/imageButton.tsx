@@ -52,7 +52,7 @@ const imageButton: React.FC<imageButton> = ({
             ]}
           >
             <Image 
-              source={imageSource} 
+              source={typeof imageSource === 'string' ? { uri: imageSource } : imageSource} 
               style={[styles.image, { width: size, height: size }]}
             />
             <View style={styles.overlay} />

@@ -1,10 +1,8 @@
 import { StyleSheet, Text, View, StatusBar, Platform, Pressable } from 'react-native';
 import { Link } from 'expo-router';
 
-import React from 'react';
-import RowCounter from '../assets/img/row-counter.png';
-import Tutorials from '../assets/img/tutorials.png';
-import Projects from '../assets/img/projects.png';
+import React, { useEffect, useState } from 'react';
+import { getFirebaseImageUrl, FIREBASE_IMAGES } from '../utils/firebaseImages';
 
 import ImageButton from '../components/imageButton';
 
@@ -16,6 +14,33 @@ const palette = {
 };
 
 const Home = () => {
+    const [imageUrls, setImageUrls] = useState({
+        rowCounter: null as any,
+        tutorials: null as any,
+        projects: null as any,
+    });
+
+    useEffect(() => {
+        const loadImages = async () => {
+            try {
+                const [rowCounter, tutorials, projects] = await Promise.all([
+                    getFirebaseImageUrl(FIREBASE_IMAGES.ROW_COUNTER),
+                    getFirebaseImageUrl(FIREBASE_IMAGES.TUTORIALS),
+                    getFirebaseImageUrl(FIREBASE_IMAGES.PROJECTS),
+                ]);
+                
+                setImageUrls({
+                    rowCounter,
+                    tutorials,
+                    projects,
+                });
+            } catch (error) {
+                console.error('Error loading images:', error);
+            }
+        };
+        loadImages();
+    }, []);
+
     return (
         <View style={styles.container}>
             <View style={styles.headerBlock}>
@@ -23,21 +48,27 @@ const Home = () => {
                 <Text style={styles.subheader}>Craft without signing in</Text>
             </View>
             <View style={styles.buttonsContainer}>
-                <ImageButton
-                    imageSource={RowCounter}
-                    label="Row Counter"
-                    link="/unSignedRowCounter"
-                />
-                <ImageButton
-                    imageSource={Tutorials}
-                    label="Tutorials"
-                    link="/unSignedTutorials"
-                />
-                <ImageButton
-                    imageSource={Projects}
-                    label="Projects"
-                    link="/unSignedProjects"
-                />
+                {imageUrls.rowCounter && (
+                    <ImageButton
+                        imageSource={imageUrls.rowCounter}
+                        label="Row Counter"
+                        link="/unSignedRowCounter"
+                    />
+                )}
+                {imageUrls.tutorials && (
+                    <ImageButton
+                        imageSource={imageUrls.tutorials}
+                        label="Tutorials"
+                        link="/unSignedTutorials"
+                    />
+                )}
+                {imageUrls.projects && (
+                    <ImageButton
+                        imageSource={imageUrls.projects}
+                        label="Projects"
+                        link="/unSignedProjects"
+                    />
+                )}
             </View>
             <View style={styles.authButtons}>
                 <Pressable

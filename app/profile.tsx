@@ -5,7 +5,7 @@ import { doc, getDoc, collection, query, where, getDocs, updateDoc } from "fireb
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 
 import React, { useEffect, useState } from 'react'
-import Profile from '../assets/img/profile.png'; 
+import { getFirebaseImageUrl, FIREBASE_IMAGES } from '../utils/firebaseImages';
 import NavPanel from '../components/navPanel';
 import ImageButton from '../components/imageButton';
 import * as ImagePicker from 'expo-image-picker';
@@ -18,6 +18,7 @@ const ProfileScreen = () => {
 
     const [username, setUsername] = useState<string>("");
     const [avatarUrl, setAvatarUrl] = useState<string>("");
+    const [defaultProfileUrl, setDefaultProfileUrl] = useState<string>("");
     const [userProjects, setUserProjects] = useState<any[]>([]);
     const [userPosts, setUserPosts] = useState<any[]>([]);
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -29,6 +30,18 @@ const ProfileScreen = () => {
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+
+    useEffect(() => {
+        const loadDefaultProfile = async () => {
+            try {
+                const url = await getFirebaseImageUrl(FIREBASE_IMAGES.PROFILE);
+                setDefaultProfileUrl(url);
+            } catch (error) {
+                console.error('Error loading default profile image:', error);
+            }
+        };
+        loadDefaultProfile();
+    }, []);
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -270,9 +283,9 @@ const ProfileScreen = () => {
                                 source={{ uri: avatarUrl }}
                                 resizeMode="cover"
                             />
-                        ) : (
-                            <Image style={styles.avatar} source={Profile} />
-                        )}
+                        ) : defaultProfileUrl ? (
+                            <Image style={styles.avatar} source={{ uri: defaultProfileUrl }} />
+                        ) : null}
                     </View>
                     <Text style={styles.username}>{username || "Loading..."}</Text>
                     

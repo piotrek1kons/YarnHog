@@ -2,10 +2,9 @@ import { StyleSheet, Text, View, Image, TouchableOpacity, TextInput, StatusBar, 
 import { router, Link } from 'expo-router';
 import { auth, db } from '../../FirebaseConfig';
 import { collection, query, where, getDocs, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-
-import Logo from '../../assets/img/logo.png';
+import { getFirebaseImageUrl, FIREBASE_IMAGES } from '../../utils/firebaseImages';
 
 const Register = () => {
     const [username, setUsername] = useState("");
@@ -15,6 +14,19 @@ const Register = () => {
     const [showPasswordInfo, setShowPasswordInfo] = useState(false);
     const [usernameExists, setUsernameExists] = useState(false);
     const [checkingUsername, setCheckingUsername] = useState(false);
+    const [logoUrl, setLogoUrl] = useState('');
+
+    useEffect(() => {
+        const loadLogo = async () => {
+            try {
+                const url = await getFirebaseImageUrl(FIREBASE_IMAGES.LOGO);
+                setLogoUrl(url);
+            } catch (error) {
+                console.error('Error loading logo:', error);
+            }
+        };
+        loadLogo();
+    }, []);
 
     const isEmailValid = (email: string) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -134,7 +146,7 @@ const Register = () => {
             >
                 <View style={styles.container}>
                     <View style={styles.logoBlock}>
-                        <Image source={Logo} style={styles.logo} />
+                        {logoUrl ? <Image source={{ uri: logoUrl }} style={styles.logo} /> : null}
                         <Text style={styles.title}>Create account</Text>
                         <Text style={styles.subtitle}>Join the YarnHog community</Text>
                     </View>

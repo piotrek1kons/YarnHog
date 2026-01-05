@@ -3,13 +3,13 @@ import { useRouter } from 'expo-router'
 
 import React, { useState, useEffect } from 'react'
 import { db, auth } from '../FirebaseConfig';
-import { collection, addDoc, query, orderBy, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove, where } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove, where, setDoc, onSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 
 import NavPanel from '../components/navPanel';
-import ProfileAvatar from '../assets/img/profile.png';
+import { getFirebaseImageUrl, FIREBASE_IMAGES } from '../utils/firebaseImages';
 import PostCard from '../components/PostCard';
 
 const Community = () => {
@@ -35,39 +35,20 @@ const Community = () => {
   const [userAvatars, setUserAvatars] = useState<Record<string, string>>({});
   const [commentUserAvatars, setCommentUserAvatars] = useState<Record<string, string>>({});
   const [userRatings, setUserRatings] = useState<Record<string, Record<string, number>>>({});
+  const [comments, setComments] = useState<any[]>([]);
+  const [defaultProfileUrl, setDefaultProfileUrl] = useState<string>('');
 
-  const loadCommentUsers = async (postsData: any[]) => {
-    const ids = new Set<string>();
-    postsData.forEach((post) => {
-      post.comments?.forEach((c: any) => {
-        if (c?.user_id) ids.add(c.user_id);
-      });
-    });
-
-    if (!ids.size) {
-      setCommentUsers({});
-      setCommentUserAvatars({});
-      return;
-    }
-
-    const userEntries = await Promise.all(
-      Array.from(ids).map(async (uid) => {
-        try {
-          const snap = await getDoc(doc(db, 'users', uid));
-          if (snap.exists()) {
-            const data = snap.data();
-            return [uid, data.username || 'Anonymous', data.avatarUrl || ''] as [string, string, string];
-          }
-        } catch (err) {
-          console.log('Error fetching username for comment user:', err);
-        }
-        return [uid, 'Anonymous', ''] as [string, string, string];
-      })
-    );
-
-    setCommentUsers(Object.fromEntries(userEntries.map(([id, name]) => [id, name])));
-    setCommentUserAvatars(Object.fromEntries(userEntries.map(([id, , avatar]) => [id, avatar])));
-  };
+  useEffect(() => {
+    const loadDefaultProfile = async () => {
+      try {
+        const url = await getFirebaseImageUrl(FIREBASE_IMAGES.PROFILE);
+        setDefaultProfileUrl(url);
+      } catch (error) {
+        console.error('Error loading default profile image:', error);
+      }
+    };
+    loadDefaultProfile();
+  }, []);
 
   const loadPostAuthors = async (postsData: any[]) => {
     const authorIds = new Set<string>();
@@ -137,12 +118,28 @@ const Community = () => {
       const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
       const snap = await getDocs(q);
       
-      const postsData = snap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
+      const postsData = await Promise.all(snap.docs.map(async (postDoc) => {
+        const postData = { id: postDoc.id, ...postDoc.data() };
+        
+        // Pobierz liczbę komentarzy
+        const commentsSnap = await getDocs(collection(db, 'posts', postDoc.id, 'comments'));
+        const commentsCount = commentsSnap.size;
+        
+        // Pobierz oceny
+        const ratingsSnap = await getDocs(collection(db, 'posts', postDoc.id, 'ratings'));
+        const ratings: Record<string, number> = {};
+        ratingsSnap.docs.forEach(ratingDoc => {
+          const data = ratingDoc.data();
+          ratings[data.user_id] = data.rating;
+        });
+        
+        return {
+          ...postData,
+          commentsCount,
+          ratings,
+        };
       }));
       
-      await loadCommentUsers(postsData);
       await loadPostAuthors(postsData);
       setPosts(postsData);
     } catch (err) {
@@ -231,8 +228,6 @@ const Community = () => {
           user_id: userId,
           createdAt: new Date(),
           likes: [],
-          comments: [],
-          ratings: {},
           project_id: selectedProjectId || '',
           project_title: selectedProjectTitle || '',
         };
@@ -294,14 +289,12 @@ const Community = () => {
     if (!userId || rating < 1 || rating > 5) return;
 
     try {
-      const postRef = doc(db, 'posts', postId);
-      const post = posts.find(p => p.id === postId);
+      const ratingRef = doc(db, 'posts', postId, 'ratings', userId);
       
-      const updatedRatings = { ...post?.ratings || {} };
-      updatedRatings[userId] = rating;
-
-      await updateDoc(postRef, {
-        ratings: updatedRatings
+      await setDoc(ratingRef, {
+        user_id: userId,
+        rating: rating,
+        createdAt: new Date(),
       });
 
       fetchPosts();
@@ -314,34 +307,73 @@ const Community = () => {
     if (!commentText.trim() || !selectedPost) return;
 
     try {
-      const postRef = doc(db, 'posts', selectedPost.id);
-      const comment = {
+      const commentsRef = collection(db, 'posts', selectedPost.id, 'comments');
+      
+      await addDoc(commentsRef, {
         user_id: userId,
         text: commentText,
         createdAt: new Date(),
-      };
-
-      await updateDoc(postRef, {
-        comments: arrayUnion(comment)
       });
 
       setCommentText('');
-      fetchPosts();
-      
-      // Update selected post
-      const updatedPost = posts.find(p => p.id === selectedPost.id);
-      if (updatedPost) {
-        setSelectedPost(updatedPost);
-      }
     } catch (err) {
       console.log('Error adding comment:', err);
       alert('Failed to add comment');
     }
   };
 
-  const openComments = (post: any) => {
+  const openComments = async (post: any) => {
     setSelectedPost(post);
     setIsCommentsModalVisible(true);
+    await loadComments(post.id);
+  };
+
+  const loadComments = async (postId: string) => {
+    try {
+      const commentsRef = collection(db, 'posts', postId, 'comments');
+      const q = query(commentsRef, orderBy('createdAt', 'desc'));
+      
+      // Listener w czasie rzeczywistym
+      const unsubscribe = onSnapshot(q, async (snapshot) => {
+        const commentsData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        setComments(commentsData);
+        
+        // Załaduj dane użytkowników dla komentarzy
+        const userIds = new Set<string>();
+        commentsData.forEach((c: any) => {
+          if (c?.user_id) userIds.add(c.user_id);
+        });
+
+        if (userIds.size > 0) {
+          const userEntries = await Promise.all(
+            Array.from(userIds).map(async (uid) => {
+              try {
+                const snap = await getDoc(doc(db, 'users', uid));
+                if (snap.exists()) {
+                  const data = snap.data();
+                  return [uid, data.username || 'Anonymous', data.avatarUrl || ''] as [string, string, string];
+                }
+              } catch (err) {
+                console.log('Error fetching username for comment user:', err);
+              }
+              return [uid, 'Anonymous', ''] as [string, string, string];
+            })
+          );
+
+          setCommentUsers(Object.fromEntries(userEntries.map(([id, name]) => [id, name])));
+          setCommentUserAvatars(Object.fromEntries(userEntries.map(([id, , avatar]) => [id, avatar])));
+        }
+      });
+      
+      // Cleanup listener when modal closes
+      return unsubscribe;
+    } catch (err) {
+      console.log('Error loading comments:', err);
+    }
   };
 
   const renderPost = ({ item }: { item: any }) => {
@@ -525,15 +557,15 @@ const Community = () => {
           </View>
 
           <FlatList
-            data={selectedPost?.comments || []}
-            keyExtractor={(item, index) => index.toString()}
+            data={comments}
+            keyExtractor={(item, index) => item.id || index.toString()}
             renderItem={({ item }) => {
               const commentAuthorAvatar = commentUserAvatars[item.user_id] || '';
-              const commentAvatarSource = commentAuthorAvatar ? { uri: commentAuthorAvatar } : ProfileAvatar;
+              const commentAvatarSource = commentAuthorAvatar ? { uri: commentAuthorAvatar } : (defaultProfileUrl ? { uri: defaultProfileUrl } : undefined);
               return (
                 <View style={styles.commentCard}>
                   <View style={styles.commentAuthorContainer}>
-                    <Image source={commentAvatarSource} style={styles.avatarTiny} />
+                    {commentAvatarSource && <Image source={commentAvatarSource} style={styles.avatarTiny} />}
                     <Text style={styles.commentAuthor}>{commentUsers[item.user_id] || item.user_name || 'Anonymous'}</Text>
                   </View>
                   <Text style={styles.commentText}>{item.text}</Text>

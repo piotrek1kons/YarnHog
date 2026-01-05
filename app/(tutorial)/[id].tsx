@@ -1,8 +1,9 @@
 import { StyleSheet, View, Text, Image, ScrollView, Platform, StatusBar } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { db } from "../../FirebaseConfig";
+import { db, storage } from "../../FirebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
+import { ref, getBytes } from "firebase/storage";
 import YouTubeVideo from "../../components/youtubeVideo";
 
 type Tutorial = {
@@ -10,7 +11,10 @@ type Tutorial = {
     description: string;
     shortcut: string;
     video: string;
-    image: string;
+    images?: {
+        symbol?: string;
+        photo?: string;
+    };
 };
 
 const getYouTubeId = (url: string) => {
@@ -22,6 +26,8 @@ const getYouTubeId = (url: string) => {
 const TutorialDetails = () => {
     const { id } = useLocalSearchParams();
     const [tutorial, setTutorial] = useState<Tutorial | null>(null);
+    const [symbolUrl, setSymbolUrl] = useState<string | null>(null);
+    const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchTutorial = async () => {
@@ -33,8 +39,36 @@ const TutorialDetails = () => {
                 if(docSnap.exists()){
                     const data = docSnap.data() as Tutorial;
                     setTutorial(data);
+
+                    // Pobierz symbol ze Storage
+                    if (data.images?.symbol) {
+                        try {
+                            const symbolRef = ref(storage, data.images.symbol);
+                            const bytes = await getBytes(symbolRef);
+                            const base64 = btoa(
+                                new Uint8Array(bytes).reduce((data, byte) => data + String.fromCharCode(byte), '')
+                            );
+                            setSymbolUrl(`data:image/png;base64,${base64}`);
+                        } catch (err) {
+                            console.log("Error loading symbol:", err);
+                        }
+                    }
+
+                    // Pobierz zdjęcie ze Storage
+                    if (data.images?.photo) {
+                        try {
+                            const photoRef = ref(storage, data.images.photo);
+                            const bytes = await getBytes(photoRef);
+                            const base64 = btoa(
+                                new Uint8Array(bytes).reduce((data, byte) => data + String.fromCharCode(byte), '')
+                            );
+                            setPhotoUrl(`data:image/jpeg;base64,${base64}`);
+                        } catch (err) {
+                            console.log("Error loading photo:", err);
+                        }
+                    }
                 }else{
-                    console.log("File dosen't exist");
+                    console.log("File doesn't exist");
                 }
             }catch (error){
                 console.log("Tutorial download error:", error);
@@ -56,8 +90,8 @@ const TutorialDetails = () => {
             <View style={styles.card}>
                 <Text style={styles.title}>{tutorial.name}</Text>
 
-                {tutorial.image && (
-                    <Image source={{ uri: tutorial.image }} style={styles.heroImage} />
+                {photoUrl && (
+                    <Image source={{ uri: photoUrl }} style={styles.heroImage} />
                 )}
 
                 <View style={styles.section}>
@@ -71,6 +105,13 @@ const TutorialDetails = () => {
                         <Text style={styles.chipText}>{tutorial.shortcut || "N/A"}</Text>
                     </View>
                 </View>
+
+                {symbolUrl && (
+                    <View style={styles.section}>
+                        <Text style={styles.label}>Symbol</Text>
+                        <Image source={{ uri: symbolUrl }} style={styles.symbol} />
+                    </View>
+                )}
 
                 <View style={styles.section}>
                     <Text style={styles.label}>Video</Text>
@@ -93,6 +134,7 @@ const styles = StyleSheet.create({
   container: {
         padding: 16,
         paddingTop: Platform.OS === "android" ? (StatusBar.currentHeight || 0) + 8 : 16,
+        paddingBottom: 60,
         backgroundColor: "#FFFBF5",
   },
     centered: {
@@ -161,6 +203,12 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "600",
         color: "#6B5E4B",
+    },
+    symbol: {
+        width: 100,
+        height: 100,
+        resizeMode: "contain",
+        marginTop: 6,
     },
     videoContainer: {
         width: "100%",

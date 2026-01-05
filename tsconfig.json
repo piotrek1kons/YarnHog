@@ -2,6 +2,8 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    "module": "commonjs",
+    "esModuleInterop": true,
     "paths": {
       "@firebase/auth": [
         "./node_modules/@firebase/auth/dist/index.rn.d.ts"
@@ -14,5 +16,10 @@
   "include": [
     "**/*.ts",
     "**/*.tsx"
-, "app/(auth)/unSignedRowCounter"  ]
+, "app/(auth)/unSignedRowCounter"  ],
+  "ts-node": {
+    "compilerOptions": {
+      "module": "commonjs"
+    }
+  }
 }

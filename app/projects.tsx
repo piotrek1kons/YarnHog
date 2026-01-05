@@ -191,7 +191,6 @@ const Projects = () => {
       resetForm();
       setIsModalVisible(false);
       
-      // Refresh projects list
       const snapshot = await getDocs(collection(db, "projects"));
       const data = snapshot.docs
         .filter(doc => {
@@ -260,7 +259,6 @@ const Projects = () => {
           </View>
           
           <ScrollView contentContainerStyle={styles.modalContent}>
-            {/* Title */}
             <View style={styles.section}>
               <Text style={styles.label}>Project Title *</Text>
               <TextInput
@@ -272,7 +270,6 @@ const Projects = () => {
               />
             </View>
 
-            {/* Materials Needed */}
             <View style={styles.section}>
               <Text style={styles.label}>Materials Needed</Text>
               <TextInput
@@ -286,7 +283,6 @@ const Projects = () => {
               />
             </View>
 
-            {/* Sections */}
             <View style={styles.section}>
               <Text style={styles.label}>Sections</Text>
               {sections.map((section, index) => (
@@ -335,7 +331,6 @@ const Projects = () => {
               </Pressable>
             </View>
 
-            {/* Image Picker */}
             <View style={styles.section}>
               <Text style={styles.label}>Project Image *</Text>
               <Pressable style={styles.imagePickerButton} onPress={pickImage}>
@@ -350,7 +345,6 @@ const Projects = () => {
               )}
             </View>
 
-            {/* Public Toggle */}
             <View style={styles.section}>
               <View style={styles.toggleContainer}>
                 <Text style={styles.label}>Public Project</Text>
@@ -366,7 +360,6 @@ const Projects = () => {
               </Text>
             </View>
 
-            {/* Buttons */}
             <View style={styles.buttonContainer}>
               <Pressable
                 style={[styles.button, styles.cancelButton]}
